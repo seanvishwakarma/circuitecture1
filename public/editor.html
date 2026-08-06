@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit Editor — CircuitTecture</title>
+<meta name="description" content="Design, wire, code and simulate circuits in CircuitTecture's interactive circuit editor.">
+<meta name="theme-color" content="#0b1120">
+<!-- Open Graph -->
+<meta property="og:site_name" content="CircuitTecture">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circuittecture.local">
+<meta property="og:title" content="Circuit Editor — CircuitTecture">
+<meta property="og:description" content="Interactive circuit editor with canvas-based wiring, code editor, serial monitor, and real-time simulation.">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Circuit Editor — CircuitTecture">
+<meta name="twitter:description" content="Interactive circuit editor with canvas-based wiring, code editor, serial monitor, and real-time simulation.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M30 62 L46 30 L54 48 L70 38' stroke='%234ade80' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='30' cy='62' r='7' fill='%23f87171'/><circle cx='70' cy='38' r='7' fill='%2360a5fa'/></svg>">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link" style="position:absolute;top:-100px;left:8px;z-index:1000;background:var(--acc);color:#000;padding:10px 18px;border-radius:0 0 10px 10px;font-weight:700;text-decoration:none;transition:top .2s">Skip to main content</a>
+<div id="app">
+
+  <!-- ============ EDITOR ============ -->
+  <section id="editor-view" class="view">
+    <header class="topbar editor-top">
+      <a href="/dashboard" class="btn ghost sm" style="text-decoration:none" id="back-btn">‹ Back</a>
+      <input id="proj-name" class="proj-name" value="Untitled" spellcheck="false">
+      <span id="save-state" class="save-state"></span>
+      <div class="sim-controls" id="sim-controls" role="toolbar" aria-label="Simulation controls">
+        <button class="sim-btn run" id="sim-run" title="Run simulation (Ctrl+Enter)" aria-label="Run simulation">▶</button>
+        <button class="sim-btn pause" id="sim-pause" title="Pause" aria-label="Pause simulation">⏸</button>
+        <button class="sim-btn step" id="sim-step" title="Step one statement" aria-label="Step one statement">⏭</button>
+        <button class="sim-btn stop" id="sim-stop" title="Stop & reset" aria-label="Stop and reset simulation">⏹</button>
+        <select id="sim-speed" title="Simulation speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+        <button class="btn ghost sm" id="mute-btn" title="Mute buzzers/speakers">🔊</button>
+        <span class="sim-clock" id="sim-clock">0.000 s</span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn ghost sm" id="share-btn" title="Share & export">🔗 Share</button>
+        <button class="btn ghost sm" id="project-menu-btn" title="Project menu">⋯</button>
+        <button class="btn primary sm" id="save-btn">Save</button>
+      </div>
+    </header>
+
+    <div class="editor-body" id="main-content">
+      <!-- Component library -->
+      <aside class="panel lib-panel" id="lib-panel">
+        <div class="panel-head">
+          <input id="lib-search" type="search" placeholder="Search components…">
+          <button class="btn icon sm" id="lib-collapse" title="Collapse library">⟨</button>
+        </div>
+        <div id="lib-list" class="lib-list"></div>
+      </aside>
+      <button class="rail-open hidden" id="lib-open" title="Components">🧰<span>Parts</span></button>
+
+      <!-- Canvas -->
+      <div class="canvas-wrap" id="canvas-wrap">
+        <svg id="circuit" tabindex="0" aria-label="Circuit canvas"></svg>
+        <div class="canvas-hint" id="canvas-hint">
+          <div class="ch-icon">🔌</div>
+          <h3>Your circuit awaits</h3>
+          <p>Drag components from the library, then <b>click a pin</b> and drag to another pin to wire them. Press <b>▶</b> to run.</p>
+          <button class="btn primary sm" id="hint-load-example">Load the Blink starter</button>
+        </div>
+        <div class="canvas-toolbar" role="toolbar" aria-label="Canvas controls">
+          <button class="btn icon sm" id="zoom-out" title="Zoom out (−)" aria-label="Zoom out">−</button>
+          <span id="zoom-level" aria-live="polite">100%</span>
+          <button class="btn icon sm" id="zoom-in" title="Zoom in (+)" aria-label="Zoom in">＋</button>
+          <button class="btn icon sm" id="zoom-fit" title="Fit to screen (F)" aria-label="Fit to screen">⛶</button>
+          <span class="tb-sep"></span>
+          <button class="btn icon sm" id="undo-btn" title="Undo (Ctrl+Z)">↶</button>
+          <button class="btn icon sm" id="redo-btn" title="Redo (Ctrl+Shift+Z)">↷</button>
+          <button class="btn icon sm" id="arrange-btn" title="Align, distribute, arrange">⫶</button>
+          <span class="tb-sep"></span>
+          <button class="btn icon sm" id="snap-btn" title="Snap to grid">🧲</button>
+          <button class="btn icon sm" id="grid-btn" title="Toggle grid">▦</button>
+          <button class="btn icon sm" id="wire-style-btn" title="Toggle orthogonal/smooth wire routing">┐</button>
+          <button class="btn icon sm" id="probe-btn" title="Probe voltage/state on any pin">🔎</button>
+        </div>
+        <div class="mini-map" id="mini-map"><svg id="mini-map-svg" aria-label="Canvas overview"></svg></div>
+        <div class="pin-tooltip hidden" id="pin-tooltip"></div>
+        <div class="checker-toast hidden" id="checker-toast"></div>
+      </div>
+
+      <!-- Right dock: inspector + wiring guide + code -->
+      <div class="right-dock" id="right-dock">
+        <div class="dock-tabs">
+          <button class="dtab active" data-dtab="code">Code</button>
+          <button class="dtab" data-dtab="inspect">Inspector</button>
+          <button class="dtab" data-dtab="guide">Wiring Guide</button>
+          <button class="dtab" data-dtab="scope">Scope</button>
+          <button class="dtab" data-dtab="pins">Pins</button>
+        </div>
+        <div class="dock-pages">
+          <div class="dpage active" id="dpage-code">
+            <div class="code-head">
+              <select id="lang-select"><option value="cpp">Arduino C/C++</option><option value="py">MicroPython</option></select>
+              <select id="template-select"><option value="">✨ Examples…</option></select>
+              <select id="editor-theme" title="Editor theme"><option value="vs-dark">Dark</option><option value="vs">Light</option><option value="system">System</option></select>
+              <select id="editor-font" title="Editor font size"><option value="12">12px</option><option value="13" selected>13px</option><option value="14">14px</option><option value="16">16px</option><option value="18">18px</option></select>
+              <button class="btn ghost sm" id="export-code-btn" title="Download .ino / .py">⬇ Export</button>
+            </div>
+            <div id="code-editor" class="code-editor"></div>
+            <div id="problems-panel" class="problems-panel"><div class="problems-head"><b>Problems</b><span class="problems-count" id="problems-count">0</span><button class="btn ghost xs" id="problems-clear">clear</button></div><div id="problems-list"><div class="problem-empty">No problems detected ✓</div></div></div>
+            <div class="serial-wrap">
+              <div class="serial-head">
+                <b>Serial Monitor</b>
+                <label class="mini"><input type="checkbox" id="serial-ts"> timestamps</label>
+                <button class="btn ghost xs" id="plotter-toggle">📈 plotter</button>
+                <button class="btn ghost xs" id="serial-clear">clear</button>
+              </div>
+              <div id="serial-out" class="serial-out"></div>
+              <canvas id="plotter" class="plotter hidden" height="90"></canvas>
+              <div class="serial-in-row"><input id="serial-in" placeholder="Send to Serial…  ⏎"><button class="btn ghost sm" id="serial-send">➤</button></div>
+              <div class="watch-row"><input id="watch-add" placeholder="Watch variable…  ⏎"><div id="watch-list"></div></div>
+            </div>
+          </div>
+          <div class="dpage" id="dpage-inspect"><div id="inspector"></div></div>
+          <div class="dpage" id="dpage-guide"><div id="guide-body"></div></div>
+          <div class="dpage" id="dpage-scope">
+            <div class="scope-head"><b>Logic Analyzer / Oscilloscope</b>
+              <select id="scope-pin"></select>
+              <button class="btn ghost xs" id="scope-add">＋ channel</button>
+              <button class="btn ghost xs" id="scope-clear">clear</button>
+            </div>
+            <canvas id="scope"></canvas>
+          </div>
+          <div class="dpage" id="dpage-pins">
+            <div class="pins-head"><b>MCU Pinout</b></div>
+            <div id="pins-list" class="pins-list"></div>
+          </div>
+        </div>
+      </div>
+      <button class="rail-open right hidden" id="dock-open" title="Code & tools">💻</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- overlays -->
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+<div id="tour-root"></div>
+
+<script src="/js/util.js" defer></script>
+<script src="/js/boards.js" defer></script>
+<script src="/js/parts.js" defer></script>
+<script src="/js/templates.js" defer></script>
+<script src="/js/transpile.js" defer></script>
+<script src="/js/sim.js" defer></script>
+<script src="/js/canvas.js" defer></script>
+<script src="/js/editor.js" defer></script>
+<script src="/js/assistant.js" defer></script>
+<script src="/js/app.js" defer></script>
+</body>
+</html>

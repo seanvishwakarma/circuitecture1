@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CircuitTecture — Hardware & Microcontroller Circuit Simulator</title>
+<meta name="description" content="Design, wire, code and simulate Arduino, ESP32 and Raspberry Pi circuits in your browser with real-time signal analysis and dual compiler support.">
+<meta name="theme-color" content="#0b1120">
+<!-- Open Graph -->
+<meta property="og:site_name" content="CircuitTecture">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circuittecture.local">
+<meta property="og:title" content="CircuitTecture — Hardware & Microcontroller Circuit Simulator">
+<meta property="og:description" content="Design, wire, code and simulate Arduino, ESP32 and Raspberry Pi circuits in your browser with real-time signal analysis and dual compiler support.">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CircuitTecture — Hardware & Microcontroller Circuit Simulator">
+<meta name="twitter:description" content="Design, wire, code and simulate Arduino, ESP32 and Raspberry Pi circuits in your browser with real-time signal analysis and dual compiler support.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M30 62 L46 30 L54 48 L70 38' stroke='%234ade80' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='30' cy='62' r='7' fill='%23f87171'/><circle cx='70' cy='38' r='7' fill='%2360a5fa'/></svg>">
+<link rel="stylesheet" href="/css/app.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CircuitTecture",
+  "description": "Design, wire, code and simulate Arduino, ESP32 and Raspberry Pi circuits in your browser with real-time signal analysis and dual compiler support.",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web Browser",
+  "browserRequirements": "Requires JavaScript"
+}
+</script>
+</head>
+<body>
+<a href="#main-content" class="skip-link" style="position:absolute;top:-100px;left:8px;z-index:1000;background:var(--acc);color:#000;padding:10px 18px;border-radius:0 0 10px 10px;font-weight:700;text-decoration:none;transition:top .2s">Skip to main content</a>
+<div id="app">
+
+  <!-- Mobile Drawer Overlay -->
+  <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
+  
+  <!-- Global Header Nav -->
+  <header class="mp-header">
+    <a href="/" class="brand" style="text-decoration:none; color:inherit;"><span class="brand-mark">⚡</span> CircuitTecture</a>
+    
+    <nav class="mp-links">
+      <a href="/" class="mp-nav-link active">Home</a>
+      <a href="/features" class="mp-nav-link">Features</a>
+      <a href="/components" class="mp-nav-link">Components</a>
+      <a href="/docs" class="mp-nav-link">Docs</a>
+      <a href="#" class="mp-nav-link" id="nav-dash-link">Dashboard</a>
+    </nav>
+
+    <div class="landing-nav-actions">
+      <button class="btn ghost sm" id="theme-btn" title="Toggle theme (currently dark)" aria-live="polite">🌙</button>
+      <button class="btn ghost" data-auth="login">Log in</button>
+      <button class="btn primary" data-auth="signup">Sign up free</button>
+      <button class="mobile-burger-btn" id="mobile-burger-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav-drawer">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-nav-drawer" id="mobile-nav-drawer">
+    <div class="mobile-drawer-head">
+      <span class="brand small"><span class="brand-mark">⚡</span> CircuitTecture</span>
+      <button class="mobile-drawer-close" id="mobile-drawer-close" aria-label="Close navigation menu">✕</button>
+    </div>
+    <div class="mobile-drawer-links">
+      <a href="/" class="mobile-link active">Home</a>
+      <a href="/features" class="mobile-link">Features</a>
+      <a href="/components" class="mobile-link">Components</a>
+      <a href="/docs" class="mobile-link">Docs</a>
+      <a href="/dashboard" class="mobile-link">Dashboard</a>
+    </div>
+    <div class="mobile-drawer-actions">
+      <button class="btn ghost block lg" data-auth="login">Log in</button>
+      <button class="btn primary block lg" data-auth="signup">Sign up free</button>
+    </div>
+  </div>
+
+  <!-- ============ HERO SECTION ============ -->
+  <section id="landing" class="landing-hero-wrap">
+    <div class="hero" id="main-content">
+      <div class="hero-glow"></div>
+      
+      <!-- Decorative Circuit Canvas Background Overlay -->
+      <div class="hero-bg-circuit" aria-hidden="true">
+        <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; opacity:0.12;">
+          <defs>
+            <linearGradient id="traceGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#22d3ee" stop-opacity="0"/>
+              <stop offset="50%" stop-color="#22d3ee" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="traceGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#4ade80" stop-opacity="0"/>
+              <stop offset="50%" stop-color="#4ade80" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- Main horizontal traces -->
+          <path d="M 0 120 L 200 120 L 300 200 L 550 200 L 650 120 L 900 120 L 1000 200 L 1200 200" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="6 6"/>
+          <path d="M 0 500 L 250 500 L 400 370 L 700 370 L 800 500 L 1050 500 L 1200 400" fill="none" stroke="#4ade80" stroke-width="1.5"/>
+          <!-- Diagonal traces -->
+          <path d="M 100 0 L 100 80 L 200 120" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 5"/>
+          <path d="M 900 0 L 900 80 L 900 120" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 5"/>
+          <path d="M 500 0 L 500 90 L 550 200" fill="none" stroke="#22d3ee" stroke-width="1" stroke-opacity="0.5"/>
+          <path d="M 700 600 L 700 500 L 700 370" fill="none" stroke="#4ade80" stroke-width="1" stroke-opacity="0.5"/>
+          <path d="M 1100 0 L 1100 150 L 1000 200" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 4" stroke-opacity="0.6"/>
+          <path d="M 300 700 L 300 550 L 400 370" fill="none" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.4"/>
+          <!-- Junction nodes -->
+          <circle cx="200" cy="120" r="4" fill="#22d3ee"/>
+          <circle cx="300" cy="200" r="4" fill="#22d3ee"/>
+          <circle cx="550" cy="200" r="4" fill="#22d3ee"/>
+          <circle cx="650" cy="120" r="4" fill="#22d3ee"/>
+          <circle cx="900" cy="120" r="3" fill="#a78bfa"/>
+          <circle cx="1000" cy="200" r="3" fill="#22d3ee"/>
+          <circle cx="250" cy="500" r="4" fill="#4ade80"/>
+          <circle cx="400" cy="370" r="4" fill="#4ade80"/>
+          <circle cx="700" cy="370" r="4" fill="#4ade80"/>
+          <circle cx="800" cy="500" r="4" fill="#4ade80"/>
+          <circle cx="500" cy="90" r="3" fill="#22d3ee" opacity="0.5"/>
+          <circle cx="1100" cy="150" r="3" fill="#f59e0b" opacity="0.5"/>
+          <!-- IC chip outlines -->
+          <rect x="360" y="100" width="60" height="40" rx="4" fill="none" stroke="#334155" stroke-width="1"/>
+          <rect x="830" y="400" width="50" height="35" rx="4" fill="none" stroke="#334155" stroke-width="1"/>
+          <!-- Animated signal particles -->
+          <circle r="3" fill="#67e8f9">
+            <animateMotion dur="4s" repeatCount="indefinite" path="M 0 120 L 200 120 L 300 200 L 550 200 L 650 120 L 900 120 L 1000 200 L 1200 200"/>
+          </circle>
+          <circle r="3" fill="#86efac">
+            <animateMotion dur="5s" repeatCount="indefinite" path="M 0 500 L 250 500 L 400 370 L 700 370 L 800 500 L 1050 500 L 1200 400"/>
+          </circle>
+          <circle r="2.5" fill="#c4b5fd">
+            <animateMotion dur="3s" repeatCount="indefinite" path="M 100 0 L 100 80 L 200 120"/>
+          </circle>
+        </svg>
+      </div>
+
+      <div class="hero-copy">
+        <div class="hero-pill">🔌 Browser-native electronics lab & real-time simulator</div>
+        <h1>Design. Wire. Code.<br><span class="grad">Simulate.</span></h1>
+        <p>A next-generation circuit playground for makers, students, and educators. Drag microcontrollers onto the canvas, wire pin-to-pin, write Arduino C++ or MicroPython code — and watch LEDs glow, motors spin, and OLED displays print with live signal analysis.</p>
+        <div class="hero-actions">
+          <a href="/editor" class="btn primary lg" style="text-decoration:none">Launch Simulator — Free</a>
+          <a href="/features" class="btn lg ghost" style="text-decoration:none">Explore Features →</a>
+        </div>
+        <div class="hero-feats">
+          <div><b class="counter-num" data-target="35">35+</b><span>hardware modules</span></div>
+          <div><b>C++ / Python</b><span>live compiler</span></div>
+          <div><b>Live Engine</b><span>instant simulation</span></div>
+          <div><b>100% Free</b><span>open sandbox</span></div>
+        </div>
+      </div>
+      
+      <div class="hero-board" aria-hidden="true">
+        <svg viewBox="0 0 520 380" id="hero-svg"></svg>
+      </div>
+    </div>
+
+    <!-- Supported hardware tickers (auto-scrolling marquee) -->
+    <div class="landing-strip-wrap">
+      <div class="landing-strip-track">
+        <span><i class="strip-icon">⚡</i> Arduino Uno · Nano · Mega</span>
+        <span><i class="strip-icon">📶</i> ESP32 · ESP8266</span>
+        <span><i class="strip-icon">🍓</i> Raspberry Pi Pico</span>
+        <span><i class="strip-icon">📟</i> DHT22 · HC-SR04 · MPU6050 · RFID</span>
+        <span><i class="strip-icon">🖥️</i> LCD · OLED · Servo · Stepper</span>
+        <span><i class="strip-icon">📈</i> Logic Scope &amp; Oscilloscope</span>
+        <span><i class="strip-icon">🔋</i> Relays · Buzzer · Potentiometer</span>
+        <!-- Duplicate for seamless loop -->
+        <span><i class="strip-icon">⚡</i> Arduino Uno · Nano · Mega</span>
+        <span><i class="strip-icon">📶</i> ESP32 · ESP8266</span>
+        <span><i class="strip-icon">🍓</i> Raspberry Pi Pico</span>
+        <span><i class="strip-icon">📟</i> DHT22 · HC-SR04 · MPU6050 · RFID</span>
+        <span><i class="strip-icon">🖥️</i> LCD · OLED · Servo · Stepper</span>
+        <span><i class="strip-icon">📈</i> Logic Scope &amp; Oscilloscope</span>
+        <span><i class="strip-icon">🔋</i> Relays · Buzzer · Potentiometer</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRUST / BENEFITS STRIP ============ -->
+  <section class="trust-banner-section">
+    <div class="landing-container">
+      <div class="trust-grid">
+        <div class="trust-item reveal">
+          <div class="trust-icon">🌐</div>
+          <div>
+            <h4>100% In-Browser</h4>
+            <p>Zero downloads, no drivers or IDE setup needed.</p>
+          </div>
+        </div>
+        <div class="trust-item reveal" style="animation-delay: 0.1s">
+          <div class="trust-icon">🛡️</div>
+          <div>
+            <h4>Safe Sandbox</h4>
+            <p>Test complex wiring without frying real chips.</p>
+          </div>
+        </div>
+        <div class="trust-item reveal" style="animation-delay: 0.2s">
+          <div class="trust-icon">⚡</div>
+          <div>
+            <h4>Dual Compiler</h4>
+            <p>Arduino C/C++ & MicroPython supported natively.</p>
+          </div>
+        </div>
+        <div class="trust-item reveal" style="animation-delay: 0.3s">
+          <div class="trust-icon">🎓</div>
+          <div>
+            <h4>Classroom Ready</h4>
+            <p>Built for individual makers and STEM educators.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ANIMATED DEMO SECTION ============ -->
+  <section class="landing-section animated-demo-section reveal">
+    <div class="landing-container">
+      <div class="section-head">
+        <div class="section-tag">⚡ Live Emulation Engine</div>
+        <h2 class="section-title">See your circuit come alive in real-time</h2>
+        <p class="section-desc">Watch digital pulses propagate through components, monitor voltage levels, and debug signal timing instantaneously.</p>
+      </div>
+      <div class="animated-demo-wrap">
+        <div class="demo-canvas-box">
+          <svg viewBox="0 0 760 320" class="demo-svg">
+            <!-- Background Grid -->
+            <defs>
+              <pattern id="demo-grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#demo-grid)"/>
+
+            <!-- MCU Board -->
+            <rect x="60" y="60" width="220" height="200" rx="12" fill="#0f172a" stroke="#3b82f6" stroke-width="2"/>
+            <rect x="80" y="80" width="100" height="40" rx="4" fill="#1e293b"/>
+            <text x="130" y="104" fill="#94a3b8" font-size="11" font-family="monospace" text-anchor="middle">ATmega328P MCU</text>
+            <rect x="80" y="140" width="180" height="24" rx="4" fill="#1e1e2e"/>
+            <text x="90" y="156" fill="#4ade80" font-size="11" font-family="monospace">digitalWrite(13, HIGH);</text>
+
+            <!-- MCU Pins -->
+            <circle cx="280" cy="100" r="5" fill="#f59e0b" class="pulse-pin"/>
+            <text x="265" y="104" fill="#cbd5e1" font-size="10" font-family="monospace">D13</text>
+            <circle cx="280" cy="170" r="5" fill="#3b82f6" class="pulse-pin"/>
+            <text x="265" y="174" fill="#cbd5e1" font-size="10" font-family="monospace">D9</text>
+            <circle cx="280" cy="230" r="5" fill="#64748b"/>
+            <text x="260" y="234" fill="#94a3b8" font-size="10" font-family="monospace">GND</text>
+
+            <!-- Wires -->
+            <path d="M 280 100 L 440 100" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" class="wire-pulse-1"/>
+            <path d="M 280 170 L 440 170" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" class="wire-pulse-2"/>
+            <path d="M 280 230 L 560 230 L 560 120" fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="4 4"/>
+
+            <!-- Resistor 1 -->
+            <rect x="440" y="86" width="60" height="28" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="470" y="103" fill="#fbbf24" font-size="11" font-family="monospace" text-anchor="middle">220 Ω</text>
+            <path d="M 500 100 L 540 100" fill="none" stroke="#f59e0b" stroke-width="3"/>
+
+            <!-- LED 1 -->
+            <circle cx="560" cy="100" r="18" fill="#ef4444" opacity="0.9" class="glow-led-1"/>
+            <circle cx="560" cy="100" r="8" fill="#fca5a5" class="glow-led-inner-1"/>
+            <text x="560" y="134" fill="#ef4444" font-size="10" font-family="sans-serif" font-weight="bold" text-anchor="middle">RED LED</text>
+
+            <!-- Servo Motor -->
+            <rect x="440" y="150" width="80" height="50" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+            <circle cx="480" cy="175" r="14" fill="#0284c7"/>
+            <line x1="480" y1="175" x2="505" y2="160" stroke="#f8fafc" stroke-width="4" stroke-linecap="round" class="servo-arm"/>
+            <text x="480" y="212" fill="#38bdf8" font-size="10" font-family="sans-serif" font-weight="bold" text-anchor="middle">SERVO</text>
+
+            <!-- Scope Output -->
+            <rect x="600" y="60" width="120" height="200" rx="10" fill="#090d16" stroke="#1e293b" stroke-width="1.5"/>
+            <text x="660" y="85" fill="#a78bfa" font-size="11" font-family="monospace" text-anchor="middle">SCOPE</text>
+            <path d="M 610 160 L 630 160 L 630 110 L 660 110 L 660 160 L 690 160 L 690 110 L 710 110" fill="none" stroke="#22c55e" stroke-width="2" class="scope-wave"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURE HIGHLIGHTS ============ -->
+  <section class="landing-section">
+    <div class="landing-container">
+      <div class="section-head reveal">
+        <div class="section-tag">✨ Built for Hardware Engineers & Students</div>
+        <h2 class="section-title">Everything you need to master embedded systems</h2>
+        <p class="section-desc">Experience real hardware emulation directly in your web browser. No drivers, no downloads, zero risk of blowing up microcontrollers.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card-lg reveal">
+          <div class="feature-icon-wrapper">⚡</div>
+          <h3>Real-Time Circuit Emulation</h3>
+          <p>Simulate pin states, PWM duty cycles, analog sensors, and current direction on custom pin-to-pin wiring instantly in your browser sandbox.</p>
+          <div class="feature-visual">
+            <svg viewBox="0 0 300 120" style="width:100%; height:auto;">
+              <rect width="300" height="120" rx="8" fill="#0f172a"/>
+              <circle cx="60" cy="60" r="28" fill="#1e293b" stroke="#22d3ee" stroke-width="2"/>
+              <circle cx="60" cy="60" r="14" fill="#0284c7">
+                <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <path d="M 100 60 Q 150 20 200 60 T 290 60" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-dasharray="6 4">
+                <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+              </path>
+              <text x="180" y="35" fill="#a78bfa" font-size="11" font-family="monospace">Simulation: Running</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="feature-card-lg reveal" style="animation-delay: 0.1s">
+          <div class="feature-icon-wrapper">💻</div>
+          <h3>Dual Compiler Engine</h3>
+          <p>Write standard C++ for Arduino or MicroPython for ESP32 and Pico. Live syntax checker flags mistakes before you compile and run.</p>
+          <div class="feature-visual">
+            <div style="font-family:var(--mono); font-size:12px; color:#4ade80; background:#090d16; padding:12px; border-radius:6px; border:1px solid #1e293b;">
+              <span style="color:#64748b">// Real-time simulation loop</span><br>
+              <span style="color:#f472b6">void</span> <span style="color:#60a5fa">loop</span>() {<br>
+              &nbsp;&nbsp;<span style="color:#fbbf24">digitalWrite</span>(13, HIGH);<br>
+              &nbsp;&nbsp;<span style="color:#fbbf24">delay</span>(500);<br>
+              &nbsp;&nbsp;<span style="color:#fbbf24">digitalWrite</span>(13, LOW);<br>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-card-lg reveal" style="animation-delay: 0.2s">
+          <div class="feature-icon-wrapper">📈</div>
+          <h3>Multi-Channel Logic Analyzer</h3>
+          <p>Inspect digital pulse widths, PWM duty cycles, SPI/I2C communication waveforms, and voltage spikes in real-time with zero latency.</p>
+          <div class="feature-visual">
+            <svg viewBox="0 0 300 100" style="width:100%; height:auto;">
+              <rect width="300" height="100" rx="8" fill="#0b1120"/>
+              <path d="M 10 70 L 50 70 L 50 20 L 100 20 L 100 70 L 150 70 L 150 20 L 200 20 L 200 70 L 290 70" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+              <path d="M 10 40 L 80 40 L 80 80 L 120 80 L 120 40 L 220 40 L 220 80 L 290 80" fill="none" stroke="#a78bfa" stroke-width="2" stroke-dasharray="4 2"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="feature-card-lg reveal" style="animation-delay: 0.3s">
+          <div class="feature-icon-wrapper">🔌</div>
+          <h3>Smart Auto-Wire Routing</h3>
+          <p>Click pins to connect color-coded schematic wires. Intelligent routing prevents illegal short-circuits and auto-snaps to target pins.</p>
+          <div class="feature-visual">
+            <svg viewBox="0 0 300 100" style="width:100%; height:auto;">
+              <rect width="300" height="100" rx="8" fill="#0b1120"/>
+              <circle cx="40" cy="50" r="8" fill="#f59e0b"/>
+              <circle cx="260" cy="50" r="8" fill="#22c55e"/>
+              <path d="M 48 50 C 120 10, 180 90, 252 50" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="150" cy="50" r="4" fill="#60a5fa"><animate attributeName="cx" values="48;252;48" dur="3s" repeatCount="indefinite"/></circle>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS STEP WORKFLOW ============ -->
+  <section class="landing-section workflow-section">
+    <div class="landing-container">
+      <div class="section-head reveal">
+        <div class="section-tag">🛠️ 4-Step Canvas Workflow</div>
+        <h2 class="section-title">From zero to working circuit in seconds</h2>
+        <p class="section-desc">No complicated configuration required. Select your microcontrollers and components, connect wires, write logic, and run!</p>
+      </div>
+
+      <div class="workflow-steps">
+        <div class="step-card reveal">
+          <div class="step-num">1</div>
+          <h4>Pick Microcontroller</h4>
+          <p>Choose Arduino Uno, Mega, ESP32, ESP8266 or Raspberry Pi Pico as your core processing board.</p>
+        </div>
+        <div class="step-card reveal" style="animation-delay: 0.1s">
+          <div class="step-num">2</div>
+          <h4>Wire Pin-to-Pin</h4>
+          <p>Drag sensors, LEDs, servos, or OLED displays and click pins to connect colored wires with auto-routing.</p>
+        </div>
+        <div class="step-card reveal" style="animation-delay: 0.2s">
+          <div class="step-num">3</div>
+          <h4>Write Code Sketch</h4>
+          <p>Use C++ or MicroPython. Choose from pre-built starter templates or write your custom logic.</p>
+        </div>
+        <div class="step-card reveal" style="animation-delay: 0.3s">
+          <div class="step-num">4</div>
+          <h4>Simulate & Debug</h4>
+          <p>Click ▶ to execute. Monitor serial output, plot signals on the oscilloscope, and tweak live values.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPONENT SHOWCASE ============ -->
+  <section class="landing-section">
+    <div class="landing-container">
+      <div class="section-head reveal">
+        <div class="section-tag">🧰 Hardware Catalog</div>
+        <h2 class="section-title">35+ Virtual Components Included</h2>
+        <p class="section-desc">Explore microcontrollers, sensors, actuators, and displays available in the CircuitTecture suite.</p>
+      </div>
+
+      <div class="components-grid">
+        <div class="comp-card-showcase reveal">
+          <div class="comp-ic-box">📟</div>
+          <div class="comp-info">
+            <h4>Arduino Uno R3</h4>
+            <p>ATmega328P MCU board with 14 digital I/O and 6 analog pins.</p>
+            <span class="comp-badge">Microcontroller</span>
+          </div>
+        </div>
+        <div class="comp-card-showcase reveal" style="animation-delay: 0.05s">
+          <div class="comp-ic-box">📶</div>
+          <div class="comp-info">
+            <h4>ESP32 WROOM</h4>
+            <p>Dual-core 240MHz Wi-Fi & Bluetooth microcontroller for IoT.</p>
+            <span class="comp-badge">Microcontroller</span>
+          </div>
+        </div>
+        <div class="comp-card-showcase reveal" style="animation-delay: 0.1s">
+          <div class="comp-ic-box">🍓</div>
+          <div class="comp-info">
+            <h4>Raspberry Pi Pico</h4>
+            <p>RP2040 dual ARM Cortex-M0+ with MicroPython & C++ support.</p>
+            <span class="comp-badge">Microcontroller</span>
+          </div>
+        </div>
+        <div class="comp-card-showcase reveal" style="animation-delay: 0.15s">
+          <div class="comp-ic-box">🖥️</div>
+          <div class="comp-info">
+            <h4>0.96" OLED Display</h4>
+            <p>128x64 I2C monochrome OLED display screen module.</p>
+            <span class="comp-badge">Display</span>
+          </div>
+        </div>
+        <div class="comp-card-showcase reveal" style="animation-delay: 0.2s">
+          <div class="comp-ic-box">🌡️</div>
+          <div class="comp-info">
+            <h4>DHT22 Sensor</h4>
+            <p>High-precision digital temperature and humidity sensor module.</p>
+            <span class="comp-badge">Sensor</span>
+          </div>
+        </div>
+        <div class="comp-card-showcase reveal" style="animation-delay: 0.25s">
+          <div class="comp-ic-box">⚙️</div>
+          <div class="comp-info">
+            <h4>SG90 Servo Motor</h4>
+            <p>Micro servo motor with 180° rotation position control.</p>
+            <span class="comp-badge">Actuator</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:36px;" class="reveal">
+        <a href="/components" class="btn ghost lg" style="text-decoration:none">View Full Hardware Catalog (35+ Modules) →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STARTER PROJECTS SHOWCASE ============ -->
+  <section class="landing-section projects-banner-section">
+    <div class="landing-container">
+      <div class="section-head reveal">
+        <div class="section-tag">🚀 Ready-to-Run Starter Projects</div>
+        <h2 class="section-title">Jumpstart your learning with official templates</h2>
+        <p class="section-desc">Open any circuit directly in the editor with pre-wired components and verified working code.</p>
+      </div>
+
+      <div class="projects-showcase-grid">
+        <div class="project-showcase-card reveal">
+          <div class="psc-preview">
+            <svg viewBox="0 0 240 120" style="width:100%; height:100%;">
+              <rect width="240" height="120" fill="#090d16"/>
+              <rect x="20" y="30" width="80" height="60" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+              <text x="60" y="65" fill="#38bdf8" font-size="10" font-family="monospace" text-anchor="middle">Arduino Uno</text>
+              <line x1="100" y1="50" x2="160" y2="50" stroke="#f59e0b" stroke-width="2"/>
+              <circle cx="175" cy="50" r="14" fill="#ef4444" opacity="0.9" class="glow-led-1"/>
+              <circle cx="175" cy="50" r="6" fill="#fff"/>
+              <text x="175" y="80" fill="#f87171" font-size="9" font-family="monospace" text-anchor="middle">PIN 13 LED</text>
+            </svg>
+          </div>
+          <div class="psc-body">
+            <h4>Blink LED & Serial Echo</h4>
+            <p>The classic hello world circuit. Toggles pin 13 LED and outputs timestamps to the serial monitor.</p>
+            <a href="/editor" class="btn primary sm" style="text-decoration:none; text-align:center;">Launch Project →</a>
+          </div>
+        </div>
+
+        <div class="project-showcase-card reveal" style="animation-delay: 0.1s">
+          <div class="psc-preview">
+            <svg viewBox="0 0 240 120" style="width:100%; height:100%;">
+              <rect width="240" height="120" fill="#090d16"/>
+              <rect x="15" y="35" width="70" height="50" rx="6" fill="#0e7490" stroke="#22d3ee" stroke-width="1.5"/>
+              <text x="50" y="63" fill="#e0f2fe" font-size="9" font-family="monospace" text-anchor="middle">DHT22</text>
+              <line x1="85" y1="60" x2="135" y2="60" stroke="#4ade80" stroke-width="2"/>
+              <rect x="135" y="30" width="90" height="60" rx="4" fill="#1e1e2e" stroke="#a78bfa" stroke-width="1.5"/>
+              <text x="180" y="55" fill="#4ade80" font-size="9" font-family="monospace" text-anchor="middle">24.5 °C</text>
+              <text x="180" y="70" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle">62.0 % RH</text>
+            </svg>
+          </div>
+          <div class="psc-body">
+            <h4>Weather Station with LCD</h4>
+            <p>Reads DHT22 temperature and humidity values and renders live readings on a 16x2 LCD display.</p>
+            <a href="/editor" class="btn primary sm" style="text-decoration:none; text-align:center;">Launch Project →</a>
+          </div>
+        </div>
+
+        <div class="project-showcase-card reveal" style="animation-delay: 0.2s">
+          <div class="psc-preview">
+            <svg viewBox="0 0 240 120" style="width:100%; height:100%;">
+              <rect width="240" height="120" fill="#090d16"/>
+              <rect x="20" y="30" width="70" height="60" rx="6" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+              <text x="55" y="65" fill="#86efac" font-size="9" font-family="monospace" text-anchor="middle">Moisture</text>
+              <path d="M 90 60 Q 120 20 150 60" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-dasharray="4 3"/>
+              <rect x="150" y="35" width="70" height="50" rx="6" fill="#1e293b" stroke="#fbbf24" stroke-width="1.5"/>
+              <text x="185" y="63" fill="#fbbf24" font-size="9" font-family="monospace" text-anchor="middle">RELAY PUMP</text>
+            </svg>
+          </div>
+          <div class="psc-body">
+            <h4>Auto Plant Watering System</h4>
+            <p>Monitors soil moisture level and controls a water pump relay automatically with manual button override.</p>
+            <a href="/editor" class="btn primary sm" style="text-decoration:none; text-align:center;">Launch Project →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMMUNITY & LEARNING SECTION ============ -->
+  <section class="landing-section community-section">
+    <div class="landing-container">
+      <div class="section-head reveal">
+        <div class="section-tag">👥 Community & Learning</div>
+        <h2 class="section-title">Learn electronics by creating & sharing</h2>
+        <p class="section-desc">Join thousands of makers, educators, and students building next-generation IoT hardware circuits.</p>
+      </div>
+
+      <div class="community-grid">
+        <div class="community-card reveal">
+          <div class="comm-icon">📚</div>
+          <h4>Interactive Documentation</h4>
+          <p>Comprehensive pinout guides, code snippets, and tutorial walk-throughs for all 35+ supported components.</p>
+          <a href="/docs" class="comm-link">Explore Docs →</a>
+        </div>
+        
+        <div class="community-card reveal" style="animation-delay: 0.1s">
+          <div class="comm-icon">🌐</div>
+          <h4>Public Project Hub</h4>
+          <p>Browse open-source projects created by the community. Fork, customize, and share your own designs with one click.</p>
+          <a href="/dashboard" class="comm-link">Browse Community Projects →</a>
+        </div>
+
+        <div class="community-card reveal" style="animation-delay: 0.2s">
+          <div class="comm-icon">🏫</div>
+          <h4>STEM Classroom Portal</h4>
+          <p>Deploy assignments to students, track progress, review circuit submissions, and provide auto-graded feedback.</p>
+          <a href="/features" class="comm-link">Explore Classroom Tools →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHY CIRCUITTECTURE — TECH ADVANTAGES ============ -->
+  <section class="landing-section why-section">
+    <div class="landing-container">
+      <div class="section-head reveal">
+        <div class="section-tag">🏆 Why CircuitTecture?</div>
+        <h2 class="section-title">Built different. Built better.</h2>
+        <p class="section-desc">Purpose-built from the ground up for real hardware simulation — not a generic drag-and-drop toybox.</p>
+      </div>
+
+      <div class="why-grid">
+        <div class="why-card reveal">
+          <div class="why-card-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48">
+              <rect x="4" y="8" width="40" height="32" rx="4" fill="none" stroke="#22d3ee" stroke-width="2"/>
+              <path d="M 12 24 L 20 18 L 28 26 L 36 16" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="12" cy="24" r="2.5" fill="#4ade80"/>
+              <circle cx="36" cy="16" r="2.5" fill="#4ade80"/>
+            </svg>
+          </div>
+          <h4>Pin-Accurate Simulation</h4>
+          <p>Every digital and analog pin behaves exactly like real hardware. GPIO states, PWM waveforms, and ADC readings are faithfully emulated.</p>
+        </div>
+        <div class="why-card reveal" style="animation-delay: 0.1s">
+          <div class="why-card-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48">
+              <rect x="6" y="12" width="16" height="24" rx="3" fill="none" stroke="#a78bfa" stroke-width="2"/>
+              <rect x="26" y="12" width="16" height="24" rx="3" fill="none" stroke="#f59e0b" stroke-width="2"/>
+              <path d="M 22 20 L 26 20" stroke="#64748b" stroke-width="1.5"/>
+              <path d="M 22 28 L 26 28" stroke="#64748b" stroke-width="1.5"/>
+              <text x="14" y="27" fill="#a78bfa" font-size="8" font-family="monospace" text-anchor="middle">C++</text>
+              <text x="34" y="27" fill="#f59e0b" font-size="8" font-family="monospace" text-anchor="middle">Py</text>
+            </svg>
+          </div>
+          <h4>True Dual-Language Support</h4>
+          <p>Not just syntax highlighting — actual transpilation from Arduino C++ and MicroPython into executable simulation instructions.</p>
+        </div>
+        <div class="why-card reveal" style="animation-delay: 0.2s">
+          <div class="why-card-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48">
+              <circle cx="24" cy="24" r="18" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="4 3"/>
+              <circle cx="24" cy="24" r="8" fill="#0e7490" stroke="#22d3ee" stroke-width="2"/>
+              <path d="M 24 6 L 24 10" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 24 38 L 24 42" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 6 24 L 10 24" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 38 24 L 42 24" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h4>Wiring Validation Engine</h4>
+          <p>Prevents unsafe connections like 5V→GND shorts and output→output conflicts before they happen. Color-coded visual feedback in real time.</p>
+        </div>
+        <div class="why-card reveal" style="animation-delay: 0.3s">
+          <div class="why-card-icon">
+            <svg viewBox="0 0 48 48" width="48" height="48">
+              <rect x="4" y="10" width="40" height="28" rx="4" fill="none" stroke="#f59e0b" stroke-width="2"/>
+              <path d="M 10 30 L 16 30 L 16 18 L 22 18 L 22 30 L 28 30 L 28 18 L 34 18 L 34 30 L 38 30" fill="none" stroke="#22c55e" stroke-width="2"/>
+            </svg>
+          </div>
+          <h4>Built-In Signal Analysis</h4>
+          <p>Multi-channel oscilloscope and logic analyzer built right into the editor. Debug I2C, SPI, UART, and PWM signal timing visually.</p>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row reveal">
+        <div class="stat-pill">
+          <span class="stat-number">35+</span>
+          <span class="stat-label">Virtual Components</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-number">6</span>
+          <span class="stat-label">Starter Templates</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-number">2</span>
+          <span class="stat-label">Language Compilers</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-number">0ms</span>
+          <span class="stat-label">Install Time</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ACCORDION ============ -->
+  <section class="landing-section">
+    <div class="landing-container">
+      <div class="section-head reveal">
+        <div class="section-tag">❓ FAQ</div>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">Got questions about CircuitTecture? We have answers.</p>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item reveal">
+          <div class="faq-question">Do I need to install any software or drivers?</div>
+          <div class="faq-answer">No! CircuitTecture runs 100% in your web browser. You can design, wire, code, and simulate microcontrollers instantly without installing any external compilers, drivers, or software packages.</div>
+        </div>
+        <div class="faq-item reveal" style="animation-delay: 0.05s">
+          <div class="faq-question">Can I export my code to upload to a physical Arduino or ESP32?</div>
+          <div class="faq-answer">Yes! You can download your written code as a standard `.ino` file for Arduino IDE or `.py` file for Thonny / MicroPython and flash it directly to real hardware.</div>
+        </div>
+        <div class="faq-item reveal" style="animation-delay: 0.1s">
+          <div class="faq-question">What languages are supported in the circuit editor?</div>
+          <div class="faq-answer">CircuitTecture supports both standard Arduino C/C++ and MicroPython, with real-time compilation and error checking directly in your browser.</div>
+        </div>
+        <div class="faq-item reveal" style="animation-delay: 0.15s">
+          <div class="faq-question">Can teachers assign projects to students?</div>
+          <div class="faq-answer">Yes! CircuitTecture includes a built-in Classroom Assignment module where educators can publish homework tasks, set due dates and rubrics, and grade student circuit submissions.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALL TO ACTION BANNER ============ -->
+  <section class="landing-section cta-banner-section reveal">
+    <div class="landing-container">
+      <div class="cta-card">
+        <div class="cta-glow"></div>
+        <div class="cta-content">
+          <h2>Ready to build your next circuit?</h2>
+          <p>Launch the interactive simulator right now. No registration required to explore demo projects.</p>
+          <div class="cta-actions">
+            <a href="/editor" class="btn primary lg" style="text-decoration:none">Launch Simulator Free 🚀</a>
+            <button class="btn lg ghost" data-auth="signup">Create Free Account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Global Footer -->
+  <footer class="mp-footer">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <a href="/" class="brand" style="text-decoration:none; color:inherit; margin-bottom:14px; display:inline-flex;"><span class="brand-mark">⚡</span> CircuitTecture</a>
+        <p style="color:var(--ink3); font-size:13.5px; line-height:1.6; max-width:320px;">The browser-native microcontroller and IoT circuit simulator for makers, students, and engineers worldwide.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Product</h5>
+        <ul>
+          <li><a href="/features">Features</a></li>
+          <li><a href="/components">Component Catalog</a></li>
+          <li><a href="/editor">Circuit Simulator</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Resources</h5>
+        <ul>
+          <li><a href="/docs">Documentation</a></li>
+          <li><a href="/docs#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+          <li><a href="/docs#pinouts">Pinout Reference</a></li>
+          <li><a href="/dashboard">User Dashboard</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Account</h5>
+        <ul>
+          <li><a href="javascript:void(0)" data-auth="login">Log in</a></li>
+          <li><a href="javascript:void(0)" data-auth="signup">Sign up free</a></li>
+          <li><a href="/dashboard">My Projects</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 CircuitTecture Inc. All rights reserved.</div>
+      <div>Designed for IoT Makers & STEM Education</div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- overlays -->
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
+<script src="/js/util.js" defer></script>
+<script src="/js/boards.js" defer></script>
+<script src="/js/parts.js" defer></script>
+<script src="/js/templates.js" defer></script>
+<script src="/js/transpile.js" defer></script>
+<script src="/js/sim.js" defer></script>
+<script src="/js/canvas.js" defer></script>
+<script src="/js/editor.js" defer></script>
+<script src="/js/assistant.js" defer></script>
+<script src="/js/app.js" defer></script>
+<script>
+  // FAQ accordion interaction
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.faq-question').forEach(q => {
+      q.addEventListener('click', () => {
+        const item = q.closest('.faq-item');
+        item.classList.toggle('open');
+      });
+    });
+  });
+</script>
+</body>
+</html>

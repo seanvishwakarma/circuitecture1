@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Features — CircuitTecture</title>
+<meta name="description" content="Explore all features of CircuitTecture: live hardware sensor emulation, dual C++/MicroPython compiler, multi-channel logic analyzer, classroom tools, and more.">
+<meta name="theme-color" content="#0b1120">
+<!-- Open Graph -->
+<meta property="og:site_name" content="CircuitTecture">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circuittecture.local">
+<meta property="og:title" content="Features — CircuitTecture">
+<meta property="og:description" content="Explore CircuitTecture features: real-time circuit emulation, dual compiler, multi-channel logic analyzer, smart wire routing, and classroom tools.">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Features — CircuitTecture">
+<meta name="twitter:description" content="Explore CircuitTecture features: real-time circuit emulation, dual compiler, multi-channel logic analyzer, smart wire routing, and classroom tools.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M30 62 L46 30 L54 48 L70 38' stroke='%234ade80' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='30' cy='62' r='7' fill='%23f87171'/><circle cx='70' cy='38' r='7' fill='%2360a5fa'/></svg>">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+  body{overflow-y:auto;overflow-x:hidden}
+  .scroll-reveal{opacity:0;transform:translateY(30px);transition:opacity .6s cubic-bezier(0.16, 1, 0.3, 1),transform .6s cubic-bezier(0.16, 1, 0.3, 1)}
+  .scroll-reveal.visible{opacity:1;transform:none}
+  .feat-hero-anim svg{filter:drop-shadow(0 0 30px rgba(74,222,128,.15))}
+  .feature-detail-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;margin-bottom:60px}
+  .feature-detail-row.reverse{direction:rtl}.feature-detail-row.reverse>*{direction:ltr}
+  .fd-text h3{font-size:26px;margin:0 0 14px;letter-spacing:-.3px}.fd-text p{color:var(--ink2);font-size:15px;line-height:1.65;margin:0 0 18px}
+  .fd-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+  .fd-list li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ink2);transition:transform .15s ease}
+  .fd-list li:hover{transform:translateX(4px)}
+  .fd-list li i{color:var(--acc);font-style:normal;font-weight:bold;flex-shrink:0}
+  .fd-visual{border-radius:16px;background:var(--panel);border:1px solid var(--line);padding:24px;position:relative;overflow:hidden;transition:border-color .2s ease}
+  .fd-visual:hover{border-color:var(--line2)}
+  .fd-visual svg{width:100%;height:auto;display:block}
+  .glow-orb{position:absolute;width:200px;height:200px;border-radius:50%;filter:blur(80px);pointer-events:none;opacity:.15}
+  .glow-orb.green{background:#4ade80}.glow-orb.cyan{background:#22d3ee}.glow-orb.violet{background:#a78bfa}
+  @media(max-width:800px){.feature-detail-row,.feature-detail-row.reverse{grid-template-columns:1fr;direction:ltr}.feature-detail-row.reverse>*{direction:ltr}}
+</style>
+<script src="/js/util.js" defer></script>
+<script src="/js/app.js" defer></script>
+</head>
+<body>
+<a href="#main-content" class="skip-link" style="position:absolute;top:-100px;left:8px;z-index:1000;background:var(--acc);color:#000;padding:10px 18px;border-radius:0 0 10px 10px;font-weight:700;text-decoration:none;transition:top .2s">Skip to main content</a>
+<div id="landing" style="display:contents">
+
+  <!-- Header -->
+  <header class="mp-header">
+    <a href="/" class="brand" style="text-decoration:none;color:inherit"><span class="brand-mark">⚡</span> CircuitTecture</a>
+    <nav class="mp-links">
+      <a href="/" class="mp-nav-link">Home</a>
+      <a href="/features" class="mp-nav-link active">Features</a>
+      <a href="/components" class="mp-nav-link">Components</a>
+      <a href="/docs" class="mp-nav-link">Docs</a>
+      <a href="/dashboard" class="mp-nav-link">Dashboard</a>
+    </nav>
+    <div class="landing-nav-actions">
+      <button class="btn ghost" data-auth="login" onclick="location.href='/'">Log in</button>
+      <button class="btn primary" data-auth="signup" onclick="location.href='/'">Sign up free</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="subpage-hero">
+    <div class="landing-container" id="main-content">
+      <div class="section-tag">✨ Platform Capabilities</div>
+      <h1>All the tools you need,<br><span class="grad">right in your browser</span></h1>
+      <p>CircuitTecture ships with a rich set of simulation, coding, debugging, and classroom tools — all running natively in your web browser with zero installation.</p>
+    </div>
+  </section>
+
+  <!-- Feature Detail: Real Sensor Inputs -->
+  <section class="landing-section">
+    <div class="landing-container">
+      <div class="feature-detail-row scroll-reveal">
+        <div class="fd-text">
+          <div class="section-tag">📡 Simulated Sensors</div>
+          <h3>No Real Hardware Required</h3>
+          <p>Every sensor in CircuitTecture is fully self-contained — adjust light levels, temperature, distance and more with built-in property sliders and canvas interactions.</p>
+          <ul class="fd-list">
+            <li><i>✓</i> MPU6050 accelerometer/gyroscope with animated drift</li>
+            <li><i>✓</i> LDR photoresistor with adjustable light level</li>
+            <li><i>✓</i> DHT22 temperature & humidity with slider control</li>
+            <li><i>✓</i> Keyboard & mouse as digital interrupt sources</li>
+          </ul>
+        </div>
+        <div class="fd-visual">
+          <div class="glow-orb cyan" style="top:-40px;right:-40px"></div>
+          <svg viewBox="0 0 400 200">
+            <rect width="400" height="200" rx="12" fill="#0b1120"/>
+            <rect x="20" y="20" width="120" height="80" rx="8" fill="#1e293b" stroke="#22d3ee" stroke-width="1.5"/>
+            <circle cx="80" cy="60" r="22" fill="#0f172a" stroke="#0ea5e9" stroke-width="2">
+              <animate attributeName="r" values="18;25;18" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="80" cy="60" r="8" fill="#0ea5e9" opacity=".7">
+              <animate attributeName="opacity" values=".4;1;.4" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <text x="42" y="118" fill="#64748b" font-size="10" font-family="monospace">WEBCAM</text>
+            <path d="M142 60 Q200 30 260 60 T380 55" fill="none" stroke="#4ade80" stroke-width="2" stroke-dasharray="6 4">
+              <animate attributeName="stroke-dashoffset" values="20;0" dur="1.2s" repeatCount="indefinite"/>
+            </path>
+            <circle r="5" fill="#4ade80">
+              <animateMotion dur="1.5s" repeatCount="indefinite" path="M142 60 Q200 30 260 60 T380 55"/>
+            </circle>
+            <rect x="260" y="30" width="120" height="60" rx="6" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+            <text x="278" y="55" fill="#a7f3d0" font-size="11" font-family="monospace">Color: #4ADE80</text>
+            <text x="278" y="72" fill="#a7f3d0" font-size="11" font-family="monospace">Lux: 842</text>
+            <path d="M80 140 Q140 170 200 140" fill="none" stroke="#a78bfa" stroke-width="2"/>
+            <path d="M200 140 Q260 110 320 140" fill="none" stroke="#a78bfa" stroke-width="2"/>
+            <text x="150" y="180" fill="#64748b" font-size="10" font-family="monospace">MIC WAVEFORM</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Feature Detail: Dual Compiler -->
+      <div class="feature-detail-row reverse scroll-reveal">
+        <div class="fd-text">
+          <div class="section-tag">💻 Dual Code Engine</div>
+          <h3>Arduino C++ & MicroPython</h3>
+          <p>Write sketches in two of the most popular embedded languages. Our built-in transpiler converts your code into a simulation-ready AST and executes it statement-by-statement with full variable inspection.</p>
+          <ul class="fd-list">
+            <li><i>✓</i> Full Arduino API: digitalRead/Write, analogRead, Serial, Wire, SPI</li>
+            <li><i>✓</i> MicroPython runtime with machine module emulation</li>
+            <li><i>✓</i> Live syntax checking with inline error markers</li>
+            <li><i>✓</i> Step-through debugger with variable watch panel</li>
+            <li><i>✓</i> 20+ starter code templates included</li>
+          </ul>
+        </div>
+        <div class="fd-visual">
+          <div class="glow-orb green" style="bottom:-40px;left:-40px"></div>
+          <div style="font-family:var(--mono);font-size:13px;line-height:1.7;background:#090d16;padding:18px;border-radius:8px;border:1px solid #1e293b">
+            <span style="color:#64748b">// Weather Station — Arduino C++</span><br>
+            <span style="color:#c084fc">#include</span> <span style="color:#fbbf24">&lt;DHT.h&gt;</span><br>
+            <span style="color:#c084fc">#include</span> <span style="color:#fbbf24">&lt;Wire.h&gt;</span><br>
+            <span style="color:#c084fc">#include</span> <span style="color:#fbbf24">&lt;Adafruit_SSD1306.h&gt;</span><br><br>
+            <span style="color:#f472b6">void</span> <span style="color:#60a5fa">loop</span>() {<br>
+            &nbsp;&nbsp;<span style="color:#f472b6">float</span> temp = <span style="color:#fbbf24">dht.readTemperature</span>();<br>
+            &nbsp;&nbsp;<span style="color:#f472b6">float</span> hum &nbsp;= <span style="color:#fbbf24">dht.readHumidity</span>();<br>
+            &nbsp;&nbsp;display.<span style="color:#fbbf24">clearDisplay</span>();<br>
+            &nbsp;&nbsp;display.<span style="color:#fbbf24">setCursor</span>(<span style="color:#22d3ee">0</span>, <span style="color:#22d3ee">0</span>);<br>
+            &nbsp;&nbsp;display.<span style="color:#fbbf24">print</span>(<span style="color:#fbbf24">"Temp: "</span>);<br>
+            &nbsp;&nbsp;display.<span style="color:#fbbf24">println</span>(temp);<br>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Detail: Logic Analyzer -->
+      <div class="feature-detail-row scroll-reveal">
+        <div class="fd-text">
+          <div class="section-tag">📈 Signal Analysis</div>
+          <h3>Multi-Channel Logic Analyzer</h3>
+          <p>Capture and visualize digital and analog signal waveforms across multiple pins simultaneously. Spot timing issues, measure PWM duty cycles, and debug communication protocols in real-time.</p>
+          <ul class="fd-list">
+            <li><i>✓</i> Up to 8 simultaneous signal channels</li>
+            <li><i>✓</i> PWM duty cycle & frequency measurement</li>
+            <li><i>✓</i> SPI / I2C / UART protocol decode overlay</li>
+            <li><i>✓</i> Adjustable timebase and trigger conditions</li>
+            <li><i>✓</i> Export waveform data as CSV</li>
+          </ul>
+        </div>
+        <div class="fd-visual">
+          <div class="glow-orb violet" style="top:-20px;right:-60px"></div>
+          <svg viewBox="0 0 400 180">
+            <rect width="400" height="180" rx="12" fill="#0b1120"/>
+            <text x="15" y="28" fill="#22c55e" font-size="10" font-family="monospace">CH1 D13</text>
+            <path d="M 70 40 L120 40 L120 15 L180 15 L180 40 L240 40 L240 15 L300 15 L300 40 L380 40" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+            <text x="15" y="73" fill="#a78bfa" font-size="10" font-family="monospace">CH2 D11</text>
+            <path d="M 70 85 L100 85 L100 65 L140 65 L140 85 L200 85 L200 65 L260 65 L260 85 L380 85" fill="none" stroke="#a78bfa" stroke-width="2"/>
+            <text x="15" y="118" fill="#22d3ee" font-size="10" font-family="monospace">CH3 A0</text>
+            <path d="M 70 130 Q120 105 170 130 T270 130 T370 130" fill="none" stroke="#22d3ee" stroke-width="2"/>
+            <line x1="70" y1="0" x2="70" y2="180" stroke="#24304d" stroke-width="1" stroke-dasharray="4 4"/>
+            <text x="15" y="168" fill="#64748b" font-size="9" font-family="monospace">⏱ 20ms/div</text>
+            <text x="300" y="168" fill="#64748b" font-size="9" font-family="monospace">Trigger: Rising</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Feature Detail: Classroom -->
+      <div class="feature-detail-row reverse scroll-reveal">
+        <div class="fd-text">
+          <div class="section-tag">🎓 Education Tools</div>
+          <h3>Classroom Assignment Portal</h3>
+          <p>Designed for STEM educators. Create assignments with rubrics, distribute to students, collect circuit submissions, and grade — all within CircuitTecture's integrated classroom system.</p>
+          <ul class="fd-list">
+            <li><i>✓</i> Create assignments with due dates & rubrics</li>
+            <li><i>✓</i> Students submit their circuit projects directly</li>
+            <li><i>✓</i> Grade submissions with score and written feedback</li>
+            <li><i>✓</i> Admin dashboard for user and project management</li>
+            <li><i>✓</i> Bulk export grades and user data as CSV</li>
+          </ul>
+        </div>
+        <div class="fd-visual">
+          <div class="glow-orb green" style="bottom:-40px;right:-40px"></div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="background:var(--bg3);border:1px solid var(--line2);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:700;font-size:14px">🔬 Lab 3: Temperature Logger</div>
+                <div style="color:var(--ink3);font-size:12px;margin-top:4px">Due: Aug 15, 2026 · 24 submissions</div>
+              </div>
+              <span style="background:linear-gradient(135deg,#14532d,#0e7490);padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;color:#a7f3d0">Active</span>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--line2);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:700;font-size:14px">💡 Lab 2: Blink & Serial</div>
+                <div style="color:var(--ink3);font-size:12px;margin-top:4px">Due: Aug 1, 2026 · 28 submissions</div>
+              </div>
+              <span style="background:var(--bg);padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;color:var(--acc)">Graded</span>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--line2);border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:700;font-size:14px">🔑 Lab 4: RFID Access Control</div>
+                <div style="color:var(--ink3);font-size:12px;margin-top:4px">Due: Sep 1, 2026 · Draft</div>
+              </div>
+              <span style="background:var(--bg);border:1px solid var(--line2);padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;color:var(--ink3)">Draft</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Detail: Version Control -->
+      <div class="feature-detail-row scroll-reveal">
+        <div class="fd-text">
+          <div class="section-tag">🕰️ Project Management</div>
+          <h3>Version History & Sharing</h3>
+          <p>Never lose work. CircuitTecture automatically saves your projects and lets you create named version snapshots you can restore at any time. Share projects via secure URLs or fork community circuits.</p>
+          <ul class="fd-list">
+            <li><i>✓</i> Auto-save with manual version snapshots</li>
+            <li><i>✓</i> Restore any previous snapshot instantly</li>
+            <li><i>✓</i> Generate shareable project URLs</li>
+            <li><i>✓</i> Fork & remix community circuits</li>
+            <li><i>✓</i> Like, tag, and organize projects into folders</li>
+          </ul>
+        </div>
+        <div class="fd-visual">
+          <div class="glow-orb cyan" style="bottom:-30px;left:-50px"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--acc);border-radius:10px">
+              <span style="color:var(--acc);font-weight:800">v5</span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Final submission</div><div style="font-size:11px;color:var(--ink3)">2 hours ago</div></div>
+              <span class="btn ghost xs">Restore</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--line);border-radius:10px">
+              <span style="color:var(--ink2);font-weight:800">v4</span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Added OLED display</div><div style="font-size:11px;color:var(--ink3)">5 hours ago</div></div>
+              <span class="btn ghost xs">Restore</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--line);border-radius:10px">
+              <span style="color:var(--ink2);font-weight:800">v3</span>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600">Wired DHT22 sensor</div><div style="font-size:11px;color:var(--ink3)">1 day ago</div></div>
+              <span class="btn ghost xs">Restore</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="landing-section" style="text-align:center;background:var(--bg2)">
+    <div class="landing-container scroll-reveal">
+      <h2 class="section-title">Ready to build your first circuit?</h2>
+      <p class="section-desc" style="margin-bottom:30px">Jump into the simulator and start wiring — no account required for your first session.</p>
+      <a href="/editor" class="btn primary lg" style="text-decoration:none">Launch Circuit Simulator →</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mp-footer">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <a href="/" class="brand" style="text-decoration:none;color:inherit;margin-bottom:14px;display:inline-flex"><span class="brand-mark">⚡</span> CircuitTecture</a>
+        <p style="color:var(--ink3);font-size:13.5px;line-height:1.6;max-width:320px">The browser-native microcontroller and IoT circuit simulator for makers, students, and engineers worldwide.</p>
+      </div>
+      <div class="footer-col"><h5>Product</h5><ul><li><a href="/features">Features</a></li><li><a href="/components">Component Catalog</a></li><li><a href="/editor">Simulator</a></li></ul></div>
+      <div class="footer-col"><h5>Resources</h5><ul><li><a href="/docs">Documentation</a></li><li><a href="/docs#shortcuts">Keyboard Shortcuts</a></li><li><a href="/dashboard">Dashboard</a></li></ul></div>
+      <div class="footer-col"><h5>Account</h5><ul><li><a href="/" data-auth="login">Log in</a></li><li><a href="/" data-auth="signup">Sign up</a></li><li><a href="/dashboard">My Projects</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <div>© 2026 CircuitTecture Inc. All rights reserved.</div>
+      <div>Designed for IoT Makers & STEM Education</div>
+    </div>
+  </footer>
+
+</div>
+
+  <script>
+    // Scroll reveal animation
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

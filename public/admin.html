@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — CircuitTecture</title>
+<meta name="description" content="CircuitTecture system administration panel — manage users, projects, settings, and database.">
+<meta name="theme-color" content="#0b1120">
+<meta property="og:site_name" content="CircuitTecture">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circuittecture.local/admin">
+<meta property="og:title" content="Admin Panel — CircuitTecture">
+<meta property="og:description" content="System administration panel for CircuitTecture — manage users, projects, settings, security, and database operations.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Admin Panel — CircuitTecture">
+<meta name="twitter:description" content="System administration panel for CircuitTecture — manage users, projects, settings, and database.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M30 62 L46 30 L54 48 L70 38' stroke='%234ade80' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='30' cy='62' r='7' fill='%23f87171'/><circle cx='70' cy='38' r='7' fill='%2360a5fa'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="admin-page">
+<a href="#main-content" class="skip-link" style="position:absolute;top:-100px;left:8px;z-index:1000;background:var(--acc);color:#000;padding:10px 18px;border-radius:0 0 10px 10px;font-weight:700;text-decoration:none;transition:top .2s">Skip to main content</a>
+<div id="app">
+  <section id="admin-page" class="view">
+    <header class="topbar">
+      <button class="btn icon burger" id="admin-burger" title="Menu">☰</button>
+      <a href="/" class="brand small" style="text-decoration:none;color:inherit"><span class="brand-mark">⚡</span> CircuitTecture</a>
+      <div class="admin-tabs">
+        <button class="tab active" data-section="overview">Overview</button>
+        <button class="tab" data-section="users">Users</button>
+        <button class="tab" data-section="projects">Projects</button>
+        <button class="tab" data-section="settings">Settings</button>
+        <button class="tab" data-section="security">Security</button>
+        <button class="tab" data-section="database">Database</button>
+        <button class="tab" data-section="activity">Activity</button>
+        <button class="tab" data-section="moderation">Moderation</button>
+        <button class="tab" data-section="flags">Feature Flags</button>
+        <button class="tab" data-section="templates">Templates</button>
+        <button class="tab" data-section="operations">Operations</button>
+      </div>
+      <div class="topbar-right">
+        <button class="btn ghost sm" id="admin-theme-btn" title="Toggle theme">🌙</button>
+        <a href="/dashboard" class="btn ghost sm" style="text-decoration:none;font-size:12px">Dashboard</a>
+        <a href="/editor" class="btn ghost sm" style="text-decoration:none;font-size:12px">Editor</a>
+        <div class="avatar-chip" id="admin-user-chip"></div>
+      </div>
+    </header>
+
+    <main class="adm-body" id="main-content">
+      <div class="adm-loading"><span class="spinner"></span><span>Loading admin panel…</span></div>
+      <div id="adm-content" class="adm-content hidden"></div>
+    </main>
+  </section>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
+<script src="/js/util.js" defer></script>
+<script src="/js/admin.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation — CircuitTecture</title>
+<meta name="description" content="CircuitTecture documentation: quick start guides, keyboard shortcuts, API reference, and troubleshooting.">
+<meta name="theme-color" content="#0b1120">
+<!-- Open Graph -->
+<meta property="og:site_name" content="CircuitTecture">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circuittecture.local">
+<meta property="og:title" content="Documentation — CircuitTecture">
+<meta property="og:description" content="CircuitTecture documentation: quick start guides, keyboard shortcuts, API reference, and troubleshooting.">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Documentation — CircuitTecture">
+<meta name="twitter:description" content="CircuitTecture documentation: quick start guides, keyboard shortcuts, API reference, and troubleshooting.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M30 62 L46 30 L54 48 L70 38' stroke='%234ade80' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='30' cy='62' r='7' fill='%23f87171'/><circle cx='70' cy='38' r='7' fill='%2360a5fa'/></svg>">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+  body{overflow-y:auto;overflow-x:hidden}
+  .docs-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:0;max-width:1280px;margin:0 auto;min-height:70vh}
+  .docs-sidebar{border-right:1px solid var(--line);padding:28px 20px;position:sticky;top:70px;height:fit-content}
+  .docs-sidebar h4{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink3);font-weight:800;margin:20px 0 10px}
+  .docs-sidebar h4:first-child{margin-top:0}
+  .docs-sidebar a{display:block;padding:7px 12px;border-radius:8px;color:var(--ink2);text-decoration:none;font-size:13.5px;font-weight:600;transition:all .15s}
+  .docs-sidebar a:hover{background:var(--bg3);color:var(--ink)}
+  .docs-sidebar a.active{background:var(--bg3);color:var(--acc);box-shadow:inset 2px 0 0 var(--acc)}
+  .docs-content{padding:36px 40px;max-width:800px}
+  .docs-content h2{font-size:28px;margin:0 0 10px;padding-top:20px;border-top:1px solid var(--line);letter-spacing:-.5px}
+  .docs-content h2:first-child{border-top:none;padding-top:0}
+  .docs-content h3{font-size:20px;margin:28px 0 10px}
+  .docs-content p{color:var(--ink2);font-size:15px;line-height:1.7;margin:0 0 16px}
+  .docs-content ul{color:var(--ink2);font-size:14px;line-height:1.7;margin:0 0 20px;padding-left:20px}
+  .docs-content li{margin-bottom:6px}
+  .docs-content code{background:var(--bg3);padding:2px 7px;border-radius:6px;font-size:13px;font-family:var(--mono);color:var(--acc)}
+  .docs-content pre{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:18px;margin:0 0 22px;overflow-x:auto;font-size:13px;line-height:1.6;font-family:var(--mono);color:var(--ink2)}
+  .docs-content pre code{background:none;padding:0;font-size:inherit}
+  .kbd-ref{display:grid;grid-template-columns:200px 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:0 0 24px}
+  .kbd-ref .kr-row{display:contents}
+  .kbd-ref .kr-key,.kbd-ref .kr-desc{padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px}
+  .kbd-ref .kr-key{font-family:var(--mono);font-weight:700;color:var(--acc);background:var(--bg3)}
+  .kbd-ref .kr-desc{color:var(--ink2)}
+  .kbd-ref .kr-row:last-child .kr-key,.kbd-ref .kr-row:last-child .kr-desc{border-bottom:none}
+  .tip-box{background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.25);border-radius:12px;padding:16px 20px;margin:0 0 22px;font-size:14px;color:var(--acc2);display:flex;gap:10px;align-items:flex-start}
+  .tip-box i{font-style:normal;font-size:18px;flex-shrink:0}
+  @media(max-width:800px){.docs-layout{grid-template-columns:minmax(0,1fr)}.docs-sidebar{position:relative;top:0;border-right:none;border-bottom:1px solid var(--line);padding:16px}.docs-content{padding:24px 20px}}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link" style="position:absolute;top:-100px;left:8px;z-index:1000;background:var(--acc);color:#000;padding:10px 18px;border-radius:0 0 10px 10px;font-weight:700;text-decoration:none;transition:top .2s">Skip to main content</a>
+
+  <!-- Header -->
+  <header class="mp-header">
+    <a href="/" class="brand" style="text-decoration:none;color:inherit"><span class="brand-mark">⚡</span> CircuitTecture</a>
+    <nav class="mp-links">
+      <a href="/" class="mp-nav-link">Home</a>
+      <a href="/features" class="mp-nav-link">Features</a>
+      <a href="/components" class="mp-nav-link">Components</a>
+      <a href="/docs" class="mp-nav-link active">Docs</a>
+      <a href="/dashboard" class="mp-nav-link">Dashboard</a>
+    </nav>
+    <div class="landing-nav-actions">
+      <button class="btn ghost" onclick="location.href='/'">Log in</button>
+      <button class="btn primary" onclick="location.href='/'">Sign up free</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="subpage-hero">
+    <div class="landing-container">
+      <div class="section-tag">📖 Documentation</div>
+      <h1>CircuitTecture Docs</h1>
+      <p>Everything you need to get started, from quick start guides to API reference and keyboard shortcuts.</p>
+    </div>
+  </section>
+
+  <!-- Docs Layout -->
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <h4>Getting Started</h4>
+      <a href="#quick-start" class="active">Quick Start</a>
+      <a href="#your-first-circuit">Your First Circuit</a>
+      <a href="#writing-code">Writing Code</a>
+
+      <h4>Reference</h4>
+      <a href="#keyboard-shortcuts">Keyboard Shortcuts</a>
+      <a href="#arduino-api">Arduino API</a>
+      <a href="#micropython-api">MicroPython API</a>
+      <a href="#pinouts">Pinout Reference</a>
+
+      <h4>Advanced</h4>
+      <a href="#sensors">Hardware Sensors</a>
+      <a href="#logic-analyzer">Logic Analyzer</a>
+      <a href="#sharing">Sharing & Exporting</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+    </aside>
+
+    <main class="docs-content" id="main-content">
+      <h2 id="quick-start">Quick Start</h2>
+      <p>CircuitTecture runs entirely in your web browser. No installation, no drivers, no configuration — just open the editor and start building.</p>
+
+      <div class="tip-box"><i>💡</i>CircuitTecture works best in Chrome, Edge, or Firefox. Safari is supported with some limitations on WebUSB features.</div>
+
+      <h3>1. Open the Simulator</h3>
+      <p>Navigate to <a href="/editor" style="color:var(--acc)">circuittecture.local/editor</a> or click <strong>"Launch Simulator"</strong> from the homepage. You'll see an empty circuit canvas with a component library on the left and a code editor on the right.</p>
+
+      <h3>2. Add a Microcontroller</h3>
+      <p>From the component library, search or browse for a board like <code>Arduino Uno</code>. Click it or drag it onto the canvas. The board appears with labeled pins ready for wiring.</p>
+
+      <h3>3. Add Components & Wire</h3>
+      <p>Add LEDs, sensors, displays, or motors the same way. To create a wire, click on any pin — it highlights green. Then click a second pin to complete the connection. Wires auto-route around components.</p>
+
+      <h3>4. Write Your Code</h3>
+      <p>In the right panel, select <strong>Code</strong> tab. Choose Arduino C++ or MicroPython. Write your sketch or pick a template from the Examples dropdown. The editor provides syntax highlighting, auto-indent, and live error checking.</p>
+
+      <h3>5. Simulate</h3>
+      <p>Click the <strong>▶ Run</strong> button (or press <code>Ctrl+Enter</code>). Your code executes statement-by-statement. LEDs light up, servos move, and serial output appears in the Serial Monitor below the code editor.</p>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="your-first-circuit">Your First Circuit: Blink</h2>
+      <p>The classic "Hello World" of electronics — blinking an LED on pin 13.</p>
+
+      <h3>Circuit Setup</h3>
+      <ul>
+        <li>Drag an <strong>Arduino Uno</strong> onto the canvas</li>
+        <li>Drag an <strong>LED</strong> and a <strong>220Ω Resistor</strong></li>
+        <li>Wire: Uno pin <code>13</code> → Resistor → LED Anode</li>
+        <li>Wire: LED Cathode → Uno <code>GND</code></li>
+      </ul>
+
+      <h3>Code</h3>
+      <pre><code>void setup() {
+  pinMode(13, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  digitalWrite(13, HIGH);
+  Serial.println("LED ON");
+  delay(1000);
+
+  digitalWrite(13, LOW);
+  Serial.println("LED OFF");
+  delay(1000);
+}</code></pre>
+
+      <p>Press <code>▶ Run</code> and watch the LED blink on the canvas while timestamps appear in the Serial Monitor.</p>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="writing-code">Writing Code</h2>
+      <p>CircuitTecture supports two programming languages:</p>
+      <ul>
+        <li><strong>Arduino C/C++</strong> — Standard Arduino API with <code>setup()</code> and <code>loop()</code> lifecycle</li>
+        <li><strong>MicroPython</strong> — Python-style syntax with <code>machine</code> module for GPIO, PWM, I2C, and SPI</li>
+      </ul>
+      <p>Switch between languages using the dropdown in the Code panel header. Your code is auto-saved with the project.</p>
+
+      <div class="tip-box"><i>🤖</i>Use the <strong>AI Assistant</strong> tab to ask questions about your circuit or get code suggestions. It understands your current wiring and board configuration.</div>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
+      <div class="kbd-ref">
+        <div class="kr-row"><div class="kr-key">Ctrl + Enter</div><div class="kr-desc">Run / restart simulation</div></div>
+        <div class="kr-row"><div class="kr-key">Ctrl + S</div><div class="kr-desc">Save project</div></div>
+        <div class="kr-row"><div class="kr-key">Ctrl + Z</div><div class="kr-desc">Undo last action</div></div>
+        <div class="kr-row"><div class="kr-key">Ctrl + Shift + Z</div><div class="kr-desc">Redo</div></div>
+        <div class="kr-row"><div class="kr-key">Delete / Backspace</div><div class="kr-desc">Delete selected component or wire</div></div>
+        <div class="kr-row"><div class="kr-key">Ctrl + A</div><div class="kr-desc">Select all components</div></div>
+        <div class="kr-row"><div class="kr-key">Ctrl + D</div><div class="kr-desc">Duplicate selected component</div></div>
+        <div class="kr-row"><div class="kr-key">R</div><div class="kr-desc">Rotate selected component 90°</div></div>
+        <div class="kr-row"><div class="kr-key">F</div><div class="kr-desc">Fit canvas to screen</div></div>
+        <div class="kr-row"><div class="kr-key">G</div><div class="kr-desc">Toggle grid visibility</div></div>
+        <div class="kr-row"><div class="kr-key">+ / −</div><div class="kr-desc">Zoom in / out</div></div>
+        <div class="kr-row"><div class="kr-key">Escape</div><div class="kr-desc">Cancel current action / deselect</div></div>
+        <div class="kr-row"><div class="kr-key">/</div><div class="kr-desc">Focus search bar</div></div>
+        <div class="kr-row"><div class="kr-key">?</div><div class="kr-desc">Show keyboard shortcuts modal</div></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="arduino-api">Arduino API Reference</h2>
+      <p>CircuitTecture emulates the following Arduino core functions:</p>
+
+      <h3>Digital I/O</h3>
+      <pre><code>pinMode(pin, mode)      // INPUT, OUTPUT, INPUT_PULLUP
+digitalWrite(pin, val)  // HIGH or LOW
+digitalRead(pin)        // Returns HIGH or LOW</code></pre>
+
+      <h3>Analog I/O</h3>
+      <pre><code>analogRead(pin)         // Returns 0–1023
+analogWrite(pin, val)   // PWM output 0–255</code></pre>
+
+      <h3>Serial</h3>
+      <pre><code>Serial.begin(baud)
+Serial.print(data)
+Serial.println(data)
+Serial.available()
+Serial.read()</code></pre>
+
+      <h3>Time</h3>
+      <pre><code>delay(ms)
+delayMicroseconds(us)
+millis()
+micros()</code></pre>
+
+      <h3>Advanced</h3>
+      <pre><code>tone(pin, frequency, duration)
+noTone(pin)
+pulseIn(pin, value)
+shiftOut(dataPin, clockPin, bitOrder, value)
+Wire.begin() / Wire.write() / Wire.read()
+SPI.begin() / SPI.transfer()</code></pre>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="micropython-api">MicroPython API Reference</h2>
+      <pre><code>from machine import Pin, PWM, ADC, I2C, SPI
+import time
+
+# Digital output
+led = Pin(13, Pin.OUT)
+led.value(1)
+
+# Analog read
+adc = ADC(Pin(34))
+val = adc.read()
+
+# PWM
+pwm = PWM(Pin(25), freq=1000, duty=512)
+
+# I2C
+i2c = I2C(0, scl=Pin(22), sda=Pin(21))
+i2c.scan()
+i2c.writeto(0x3C, b'\x00')
+
+# Timing
+time.sleep(1)
+time.sleep_ms(500)
+time.ticks_ms()</code></pre>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="pinouts">Pinout Reference</h2>
+      <p>Each microcontroller board in CircuitTecture displays its full pin layout directly on the canvas. Hover any pin to see its name, type (digital/analog/PWM/I2C/SPI), and supported functions.</p>
+
+      <h3>Arduino Uno R3</h3>
+      <ul>
+        <li><strong>Digital pins:</strong> D0–D13 (D3, D5, D6, D9, D10, D11 support PWM)</li>
+        <li><strong>Analog pins:</strong> A0–A5</li>
+        <li><strong>I2C:</strong> SDA (A4), SCL (A5)</li>
+        <li><strong>SPI:</strong> MOSI (D11), MISO (D12), SCK (D13), SS (D10)</li>
+        <li><strong>Serial:</strong> TX (D1), RX (D0)</li>
+        <li><strong>Power:</strong> 5V, 3.3V, GND, VIN</li>
+      </ul>
+
+      <h3>ESP32 WROOM</h3>
+      <ul>
+        <li><strong>GPIO:</strong> GPIO0–GPIO39 (most support digital, ADC, PWM, touch)</li>
+        <li><strong>I2C:</strong> Default SDA (GPIO21), SCL (GPIO22)</li>
+        <li><strong>SPI:</strong> VSPI and HSPI with configurable pins</li>
+        <li><strong>Serial:</strong> UART0 (GPIO1/3), UART1, UART2</li>
+        <li><strong>DAC:</strong> GPIO25, GPIO26</li>
+      </ul>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="sensors">Simulated Sensors</h2>
+      <p>CircuitTecture's components are fully self-contained — no real hardware needed:</p>
+      <ul>
+        <li><strong>MPU6050 (IMU):</strong> Simulated accelerometer/gyroscope with gentle animated drift, ready to use without any device permissions.</li>
+        <li><strong>LDR / Photoresistor:</strong> Light level adjustable via a slider on the component properties panel.</li>
+        <li><strong>All other sensors</strong> (DHT22, ultrasonic, PIR, soil moisture, gas, IR obstacle) use property sliders or canvas interactions to produce realistic values.</li>
+      </ul>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="logic-analyzer">Logic Analyzer</h2>
+      <p>The built-in logic analyzer captures digital and analog signals in real-time during simulation. Open it from the <strong>Scope</strong> tab in the right dock.</p>
+      <ul>
+        <li>Add channels by selecting pins from the dropdown and clicking <strong>+ channel</strong></li>
+        <li>Supports up to 8 simultaneous channels</li>
+        <li>Adjustable timebase and vertical scale</li>
+        <li>Hover to inspect exact voltage/timing at cursor position</li>
+      </ul>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="sharing">Sharing & Exporting</h2>
+      <h3>Share a Project</h3>
+      <p>Click <strong>🔗 Share</strong> in the editor toolbar. This generates a unique URL that anyone can use to view your circuit (read-only). They can fork it to create their own editable copy.</p>
+
+      <h3>Export Code</h3>
+      <p>Click <strong>⬇ Export</strong> in the code panel header to download your sketch as a <code>.ino</code> (Arduino) or <code>.py</code> (MicroPython) file, ready to upload to physical hardware.</p>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="troubleshooting">Troubleshooting</h2>
+      <h3>Simulation won't start</h3>
+      <ul>
+        <li>Check the <strong>Problems</strong> panel for syntax errors in your code</li>
+        <li>Make sure you have a board on the canvas — the simulator needs at least one microcontroller</li>
+        <li>Try refreshing the browser page</li>
+      </ul>
+
+      <h3>Wires won't connect</h3>
+      <ul>
+        <li>Make sure you're clicking directly on a pin (it highlights green when hoverable)</li>
+        <li>Some pins may already be connected — check the Inspector panel</li>
+        <li>Enable <strong>Snap to grid</strong> for easier pin targeting</li>
+      </ul>
+
+      <h3>A sensor isn't responding</h3>
+      <ul>
+        <li>Check the sensor's property panel — most sensors have sliders to control their output level</li>
+        <li>Make sure VCC and GND are wired</li>
+        <li>For I2C sensors (OLED, MPU6050), confirm SDA and SCL are connected</li>
+        <li>Try pressing <strong>▶ Run</strong> to start the simulation</li>
+      </ul>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mp-footer">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <a href="/" class="brand" style="text-decoration:none;color:inherit;margin-bottom:14px;display:inline-flex"><span class="brand-mark">⚡</span> CircuitTecture</a>
+        <p style="color:var(--ink3);font-size:13.5px;line-height:1.6;max-width:320px">The browser-native microcontroller and IoT circuit simulator.</p>
+      </div>
+      <div class="footer-col"><h5>Product</h5><ul><li><a href="/features">Features</a></li><li><a href="/components">Components</a></li><li><a href="/editor">Simulator</a></li></ul></div>
+      <div class="footer-col"><h5>Resources</h5><ul><li><a href="/docs">Docs</a></li><li><a href="/dashboard">Dashboard</a></li></ul></div>
+      <div class="footer-col"><h5>Account</h5><ul><li><a href="/">Log in</a></li><li><a href="/">Sign up</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><div>© 2026 CircuitTecture Inc.</div><div>IoT Makers & STEM Education</div></div>
+  </footer>
+
+  <script>
+    // Sidebar active state on scroll
+    const sections = document.querySelectorAll('.docs-content h2[id]');
+    const links = document.querySelectorAll('.docs-sidebar a[href^="#"]');
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) current = s.id; });
+      links.forEach(l => {
+        l.classList.remove('active');
+        if (l.getAttribute('href') === '#' + current) l.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

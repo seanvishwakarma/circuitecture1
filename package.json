@@ -1,0 +1,38 @@
+{
+  "name": "circuittecture",
+  "version": "1.0.0",
+  "description": "Interactive IoT circuit simulator with a web-based editor, simulation engine, collaboration, and admin controls.",
+  "private": true,
+  "main": "server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "db:migrate": "node scripts/migrate-json-to-sqlite.js",
+    "lint": "eslint public/js/ server.js check_syntax.js",
+    "lint:fix": "eslint --fix public/js/ server.js check_syntax.js",
+    "format": "prettier --write 'public/**/*.{js,css,html}' 'server.js'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-html": "^8.1.4",
+    "playwright": "^1.62.0",
+    "prettier": "^3.9.6",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.2",
+    "ws": "^8.21.1"
+  }
+}

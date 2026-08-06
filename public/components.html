@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Component Catalog — CircuitTecture</title>
+<meta name="description" content="Browse the full catalog of 35+ virtual microcontrollers, sensors, actuators, and displays available in CircuitTecture.">
+<meta name="theme-color" content="#0b1120">
+<!-- Open Graph -->
+<meta property="og:site_name" content="CircuitTecture">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://circuittecture.local">
+<meta property="og:title" content="Components — CircuitTecture">
+<meta property="og:description" content="Browse the full catalog of 35+ virtual microcontrollers, sensors, actuators, and displays.">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Components — CircuitTecture">
+<meta name="twitter:description" content="Browse the full catalog of 35+ virtual microcontrollers, sensors, actuators, and displays.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230f172a'/><path d='M30 62 L46 30 L54 48 L70 38' stroke='%234ade80' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/><circle cx='30' cy='62' r='7' fill='%23f87171'/><circle cx='70' cy='38' r='7' fill='%2360a5fa'/></svg>">
+<link rel="stylesheet" href="/css/app.css">
+<script src="/js/util.js" defer></script>
+<script src="/js/app.js" defer></script>
+</head>
+<body>
+<a href="#main-content" class="skip-link" style="position:absolute;top:-100px;left:8px;z-index:1000;background:var(--acc);color:#000;padding:10px 18px;border-radius:0 0 10px 10px;font-weight:700;text-decoration:none;transition:top .2s">Skip to main content</a>
+<div id="landing" style="display:contents">
+
+  <!-- Header -->
+  <header class="mp-header">
+    <a href="/" class="brand" style="text-decoration:none;color:inherit"><span class="brand-mark">⚡</span> CircuitTecture</a>
+    <nav class="mp-links">
+      <a href="/" class="mp-nav-link">Home</a>
+      <a href="/features" class="mp-nav-link">Features</a>
+      <a href="/components" class="mp-nav-link active">Components</a>
+      <a href="/docs" class="mp-nav-link">Docs</a>
+      <a href="/dashboard" class="mp-nav-link">Dashboard</a>
+    </nav>
+    <div class="landing-nav-actions">
+      <button class="btn ghost" onclick="location.href='/'">Log in</button>
+      <button class="btn primary" onclick="location.href='/'">Sign up free</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="subpage-hero">
+    <div class="landing-container" id="main-content">
+      <div class="section-tag">🧰 Hardware Library</div>
+      <h1>Component Catalog</h1>
+      <p>Browse the full library of 35+ virtual microcontrollers, sensors, actuators, displays, and passive components available in CircuitTecture.</p>
+    </div>
+  </section>
+
+  <section class="landing-section" style="padding-top:50px">
+    <div class="landing-container">
+
+      <!-- Filter Bar -->
+      <div class="component-filter-bar" id="comp-filter">
+        <button class="filter-btn active" data-cat="all">All Components</button>
+        <button class="filter-btn" data-cat="mcu">Microcontrollers</button>
+        <button class="filter-btn" data-cat="sensor">Sensors</button>
+        <button class="filter-btn" data-cat="display">Displays</button>
+        <button class="filter-btn" data-cat="actuator">Actuators</button>
+        <button class="filter-btn" data-cat="passive">Passives & I/O</button>
+      </div>
+
+      <!-- MCU Section -->
+      <div class="cat-section scroll-reveal" data-cat-group="mcu">
+        <h3>📟 Microcontrollers & Development Boards</h3>
+        <p>Core processing boards supported by CircuitTecture. Each board emulates full GPIO, ADC, PWM, I2C, SPI, and Serial peripherals.</p>
+        <div class="components-grid">
+          <div class="comp-card-showcase"><div class="comp-ic-box">📟</div><div class="comp-info"><h4>Arduino Uno R3</h4><p>ATmega328P · 14 digital I/O · 6 analog · 32KB Flash</p><span class="comp-badge">MCU</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">📟</div><div class="comp-info"><h4>Arduino Nano</h4><p>ATmega328P · Compact breadboard form factor</p><span class="comp-badge">MCU</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">📟</div><div class="comp-info"><h4>Arduino Mega 2560</h4><p>ATmega2560 · 54 digital I/O · 16 analog · 256KB Flash</p><span class="comp-badge">MCU</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">📶</div><div class="comp-info"><h4>ESP32 WROOM</h4><p>Dual-core 240MHz · Wi-Fi & BLE · 34 GPIO · MicroPython</p><span class="comp-badge">MCU</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">📶</div><div class="comp-info"><h4>ESP8266 NodeMCU</h4><p>Tensilica 80MHz · Wi-Fi · 11 GPIO · Popular IoT board</p><span class="comp-badge">MCU</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🍓</div><div class="comp-info"><h4>Raspberry Pi Pico</h4><p>RP2040 · Dual Cortex-M0+ · 26 GPIO · C++ & MicroPython</p><span class="comp-badge">MCU</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🍓</div><div class="comp-info"><h4>Raspberry Pi 4B</h4><p>BCM2711 · Quad Cortex-A72 · Full Linux GPIO emulation</p><span class="comp-badge">MCU</span></div></div>
+        </div>
+      </div>
+
+      <!-- Sensors Section -->
+      <div class="cat-section scroll-reveal" data-cat-group="sensor">
+        <h3>🌡️ Sensors & Input Modules</h3>
+        <p>Environmental, motion, distance, and identification sensors with realistic data simulation.</p>
+        <div class="components-grid">
+          <div class="comp-card-showcase"><div class="comp-ic-box">🌡️</div><div class="comp-info"><h4>DHT22 / AM2302</h4><p>Temperature & humidity · ±0.5°C accuracy · 1-Wire</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🌡️</div><div class="comp-info"><h4>DHT11</h4><p>Basic temperature & humidity · Budget-friendly</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">📏</div><div class="comp-info"><h4>HC-SR04 Ultrasonic</h4><p>Distance measurement · 2cm–400cm range · Trigger/Echo</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔄</div><div class="comp-info"><h4>MPU6050 IMU</h4><p>6-axis accelerometer + gyroscope · I2C · Motion tracking</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔑</div><div class="comp-info"><h4>RC522 RFID</h4><p>13.56MHz RFID reader/writer · SPI · NFC compatible</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔆</div><div class="comp-info"><h4>LDR Photoresistor</h4><p>Light-dependent resistor · Analog input · Ambient light</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔥</div><div class="comp-info"><h4>IR Flame Sensor</h4><p>Infrared flame detection · Digital output · 760-1100nm</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">💧</div><div class="comp-info"><h4>Soil Moisture Sensor</h4><p>Capacitive soil moisture · Analog output · Corrosion-free</p><span class="comp-badge">Sensor</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🎚️</div><div class="comp-info"><h4>Potentiometer</h4><p>10KΩ rotary potentiometer · Analog voltage divider</p><span class="comp-badge">Sensor</span></div></div>
+        </div>
+      </div>
+
+      <!-- Displays Section -->
+      <div class="cat-section scroll-reveal" data-cat-group="display">
+        <h3>🖥️ Displays & Visual Output</h3>
+        <p>LCD and OLED screens for rendering text, graphics, and data visualizations.</p>
+        <div class="components-grid">
+          <div class="comp-card-showcase"><div class="comp-ic-box">🖥️</div><div class="comp-info"><h4>16×2 LCD (I2C)</h4><p>HD44780 compatible · I2C backpack · 2-line text display</p><span class="comp-badge">Display</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🖥️</div><div class="comp-info"><h4>20×4 LCD (I2C)</h4><p>4-line character display · I2C interface · Backlit</p><span class="comp-badge">Display</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🖥️</div><div class="comp-info"><h4>0.96" OLED SSD1306</h4><p>128×64 monochrome · I2C · Graphics & text rendering</p><span class="comp-badge">Display</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🖥️</div><div class="comp-info"><h4>7-Segment Display</h4><p>Single & 4-digit · Common cathode · Numeric output</p><span class="comp-badge">Display</span></div></div>
+        </div>
+      </div>
+
+      <!-- Actuators Section -->
+      <div class="cat-section scroll-reveal" data-cat-group="actuator">
+        <h3>⚙️ Actuators & Output Devices</h3>
+        <p>Motors, buzzers, relays, and other output devices that respond to simulation commands.</p>
+        <div class="components-grid">
+          <div class="comp-card-showcase"><div class="comp-ic-box">⚙️</div><div class="comp-info"><h4>SG90 Micro Servo</h4><p>180° rotation · PWM control · Position feedback</p><span class="comp-badge">Actuator</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">⚙️</div><div class="comp-info"><h4>28BYJ-48 Stepper</h4><p>Unipolar stepper motor · ULN2003 driver · 2048 steps/rev</p><span class="comp-badge">Actuator</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔊</div><div class="comp-info"><h4>Piezo Buzzer</h4><p>Active/passive buzzer · Tone generation · PWM frequency</p><span class="comp-badge">Actuator</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔌</div><div class="comp-info"><h4>Relay Module</h4><p>5V single-channel relay · NO/NC contacts · Opto-isolated</p><span class="comp-badge">Actuator</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔔</div><div class="comp-info"><h4>DC Motor + L298N</h4><p>Dual H-bridge driver · PWM speed control · Direction</p><span class="comp-badge">Actuator</span></div></div>
+        </div>
+      </div>
+
+      <!-- Passives Section -->
+      <div class="cat-section scroll-reveal" data-cat-group="passive">
+        <h3>🔩 Passive Components & I/O</h3>
+        <p>LEDs, resistors, buttons, switches, and breadboard wiring components.</p>
+        <div class="components-grid">
+          <div class="comp-card-showcase"><div class="comp-ic-box">💡</div><div class="comp-info"><h4>LED (5mm)</h4><p>Red, green, blue, yellow, white · Forward voltage indicator</p><span class="comp-badge">Passive</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🌈</div><div class="comp-info"><h4>RGB LED (Common Cathode)</h4><p>3-channel color mixing · PWM color control</p><span class="comp-badge">Passive</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔲</div><div class="comp-info"><h4>WS2812B NeoPixel</h4><p>Addressable RGB LED strip · Data chaining · 256 colors</p><span class="comp-badge">Passive</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">⚡</div><div class="comp-info"><h4>Resistor</h4><p>220Ω–10KΩ · Color band display · Current limiting</p><span class="comp-badge">Passive</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔘</div><div class="comp-info"><h4>Push Button</h4><p>Momentary tactile switch · Debounce simulation</p><span class="comp-badge">Passive</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔀</div><div class="comp-info"><h4>Slide Switch</h4><p>SPDT toggle switch · ON/OFF state control</p><span class="comp-badge">Passive</span></div></div>
+          <div class="comp-card-showcase"><div class="comp-ic-box">🔋</div><div class="comp-info"><h4>Battery (9V)</h4><p>Simulated 9V power source · Voltage regulator compatible</p><span class="comp-badge">Passive</span></div></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="landing-section" style="text-align:center;background:var(--bg2)">
+    <div class="landing-container">
+      <h2 class="section-title">Start building with these components</h2>
+      <p class="section-desc" style="margin-bottom:30px">All components are available for free in the circuit simulator canvas.</p>
+      <a href="/editor" class="btn primary lg" style="text-decoration:none">Open Circuit Simulator →</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mp-footer">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <a href="/" class="brand" style="text-decoration:none;color:inherit;margin-bottom:14px;display:inline-flex"><span class="brand-mark">⚡</span> CircuitTecture</a>
+        <p style="color:var(--ink3);font-size:13.5px;line-height:1.6;max-width:320px">The browser-native microcontroller and IoT circuit simulator.</p>
+      </div>
+      <div class="footer-col"><h5>Product</h5><ul><li><a href="/features">Features</a></li><li><a href="/components">Components</a></li><li><a href="/editor">Simulator</a></li></ul></div>
+      <div class="footer-col"><h5>Resources</h5><ul><li><a href="/docs">Docs</a></li><li><a href="/dashboard">Dashboard</a></li></ul></div>
+      <div class="footer-col"><h5>Account</h5><ul><li><a href="/">Log in</a></li><li><a href="/">Sign up</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><div>© 2026 CircuitTecture Inc.</div><div>IoT Makers & STEM Education</div></div>
+  </footer>
+
+</div>
+
+  <script>
+    // Component filter
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const cat = btn.dataset.cat;
+        document.querySelectorAll('.cat-section').forEach(sec => {
+          if (cat === 'all') sec.style.display = '';
+          else sec.style.display = sec.dataset.catGroup === cat ? '' : 'none';
+        });
+      });
+    });
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
