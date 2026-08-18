@@ -221,12 +221,8 @@
       if (me) {
         // User is logged in on landing page — update nav
         const acts = document.querySelector('.landing-nav-actions');
-        if (acts) {
-          acts.innerHTML = (me.role === 'admin' ? '<a href="/admin" class="btn ghost sm" style="text-decoration:none;font-size:12px">🛡️ Admin</a>' : '') + '<button class="btn ghost sm" id="theme-btn" title="Toggle theme">🌙</button><a href="/dashboard" class="btn primary" style="text-decoration:none">Go to Dashboard →</a><button class="mobile-burger-btn" id="mobile-burger-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav-drawer"><span></span><span></span><span></span></button>';
-          updateThemeBtn();
-          const tb = acts.querySelector('#theme-btn');
-          if (tb) tb.addEventListener('click', toggleTheme);
-        }
+        if (acts) acts.innerHTML = '<a href="/dashboard" class="btn primary" style="text-decoration:none">Go to Dashboard →</a><button class="mobile-burger-btn" id="mobile-burger-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav-drawer"><span></span><span></span><span></span></button>';
+        landNavSignedIn(me);
         const navDashLink = $('#nav-dash-link');
         if (navDashLink) navDashLink.href = '/dashboard';
         // Add admin link to desktop nav links
@@ -248,74 +244,7 @@
           });
         });
       }
-      // Always init mobile nav last, after any DOM changes above
-      initMobileNav();
     }
-  }
-
-/* ================= mobile dashboard toggle ================= */
-  function initMobileNav() {
-    const burger = $('#dash-burger');
-    const drawer = $('#dash-side');
-    if (!burger || !drawer) return;
-
-    const openDrawer = () => {
-      burger.classList.add('open');
-      drawer.classList.add('open');
-      document.body.classList.add('dash-nav-open');
-    };
-    const closeDrawer = () => {
-      burger.classList.remove('open');
-      drawer.classList.remove('open');
-      document.body.classList.remove('dash-nav-open');
-    };
-
-    burger.onclick = (e) => {
-      e.stopPropagation();
-      if (drawer.classList.contains('open')) closeDrawer();
-      else openDrawer();
-    };
-    
-    // Close when clicking outside
-    document.onclick = (e) => {
-      if (!drawer.contains(e.target) && !burger.contains(e.target) && drawer.classList.contains('open')) {
-        closeDrawer();
-      }
-    };
-    
-    // Close on escape key
-    document.onkeypress = (e) => {
-      if (e.key === 'Escape' && drawer.classList.contains('open')) {
-        closeDrawer();
-      }
-    };
-    
-    // Close drawer when clicking on nav links (mobile only)
-    document.querySelectorAll('#dash-side .folder-item, #dash-side .tag-pill').forEach(item => {
-      item.onclick = e => {
-        if (window.innerWidth <= 768) closeDrawer();
-      };
-    });
-    
-    // Close drawer when clicking Dashboard tab to prevent page reload
-    document.querySelectorAll('[data-tab="mine"]')[0].onclick = e => {
-      if (window.innerWidth <= 768) {
-        e.preventDefault();
-        closeDrawer();
-      }
-    };
-    document.querySelectorAll('[data-tab="templates"]')[0].onclick = e => {
-      if (window.innerWidth <= 768) {
-        e.preventDefault();
-        closeDrawer();
-      }
-    };
-    document.querySelectorAll('[data-tab="admin"]')[0].onclick = e => {
-      if (window.innerWidth <= 768) {
-        e.preventDefault();
-        closeDrawer();
-      }
-    };
   }
 
 /* ============ search with debounce and enhanced filtering ========= */
@@ -346,57 +275,157 @@
     $('#' + view).classList.remove('hidden');
   }
 
-  /* ================= theme ================= */
-  function effectiveTheme(pref) { return pref === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : pref; }
-  function applyThemePref(pref) {
-    const eff = effectiveTheme(pref || 'dark');
-    document.documentElement.setAttribute('data-theme', eff);
-    document.documentElement.dataset.themePref = pref || eff;
-    if (CS.editor && CS.editor.setTheme) CS.editor.setTheme(eff === 'light' ? 'vs' : 'vs-dark');
-    const et = $('#editor-theme'); if (et) et.value = (pref === 'system') ? 'system' : (eff === 'light' ? 'vs' : 'vs-dark');
-    updateThemeBtn();
+  /* ================= theme (dark-only) ================= */
+  // CircuitTecture ships one carefully-tuned dark theme — the canvas, panels and
+  // code editor are all designed around it. Legacy light/system preferences are
+  // cleaned up so nothing can ever flip the app out of dark mode.
+  function applyEditorTheme(v) {
+    const theme = (v === 'hc-black' || v === 'vs-dark') ? v : 'vs-dark';
+    localStorage.setItem('ct-code-theme', theme);
+    if (CS.editor && CS.editor.setTheme) CS.editor.setTheme(theme);
+    const et = $('#editor-theme'); if (et) et.value = theme;
   }
   function initTheme() {
-    const pref = localStorage.getItem('ct-theme') || localStorage.getItem('cf-theme') || 'dark';
-    applyThemePref(pref);
-    if (matchMedia) matchMedia('(prefers-color-scheme: light)').addEventListener && matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if ((localStorage.getItem('ct-theme') || '') === 'system') applyThemePref('system'); });
-  }
-  function toggleTheme() {
-    const cur = document.documentElement.dataset.themePref || document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = cur === 'dark' ? 'light' : cur === 'light' ? 'system' : 'dark';
-    if (next === cur) return;
-    localStorage.setItem('ct-theme', next);
-    applyThemePref(next);
-    updateThemeBtn();
-    toast('Theme: ' + next, 'ok', 900);
-  }
-  function updateThemeBtn() {
-    const b = $('#theme-btn'); if (b) { const pref = document.documentElement.dataset.themePref || document.documentElement.getAttribute('data-theme'); b.textContent = pref === 'system' ? '💻' : document.documentElement.getAttribute('data-theme') === 'dark' ? '🌙' : '☀️'; }
+    localStorage.removeItem('ct-theme');
+    localStorage.removeItem('cf-theme');
+    document.documentElement.setAttribute('data-theme', 'dark');
+    applyEditorTheme(localStorage.getItem('ct-code-theme') || 'vs-dark');
   }
 
   /* ================= landing & auth ================= */
   function heroArt() {
     const svg = $('#hero-svg'); if (!svg) return;
     svg.innerHTML = `
-      <rect x="40" y="60" width="200" height="120" rx="10" fill="var(--acc)" opacity=".85" stroke="var(--acc2)" stroke-width="2"/>
-      <rect x="60" y="80" width="40" height="30" rx="4" fill="var(--bg3)"/>
-      <rect x="180" y="75" width="10" height="90" rx="3" fill="var(--bg)"/>
-      <rect x="60" y="140" width="120" height="10" rx="3" fill="var(--bg)"/>
-      <text x="60" y="130" fill="var(--ink)" font-size="18" font-family="monospace" opacity=".9">UNO R3</text>
-      ${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<circle cx="${195}" cy="${82 + i * 12}" r="3.4" fill="var(--bg3)" stroke="var(--line2)"/>`).join('')}
-      <circle cx="300" cy="110" r="14" fill="#ef4444"><animate attributeName="opacity" values="1;.35;1" dur="0.8s" repeatCount="indefinite"/></circle>
-      <circle cx="300" cy="110" r="22" fill="#ef4444" opacity=".22"><animate attributeName="r" values="18;26;18" dur="0.8s" repeatCount="indefinite"/></circle>
-      <rect x="360" y="70" width="120" height="70" rx="8" fill="var(--panel)" stroke="var(--acc)" stroke-width="2"/>
-      <rect x="370" y="80" width="100" height="36" rx="3" fill="var(--bg3)"/>
-      <text x="378" y="103" fill="var(--ink)" font-size="14" font-family="monospace" opacity=".9">Hello, maker!</text>
-      <path class="hero-wire" d="M195 88 C 250 88, 260 110, 288 110" stroke="var(--acc)" stroke-width="2.5" fill="none"/>
-      <path class="hero-wire" d="M195 160 C 300 200, 340 120, 362 105" stroke="var(--acc2)" stroke-width="2.5" fill="none"/>
-      <circle r="4" fill="var(--bg)"><animateMotion dur="1.6s" repeatCount="indefinite" path="M195 88 C 250 88, 260 110, 288 110"/></circle>
-      <circle r="4" fill="var(--bg)"><animateMotion dur="2.2s" repeatCount="indefinite" path="M195 160 C 300 200, 340 120, 362 105"/></circle>
-      <circle cx="300" cy="110" r="3" fill="var(--bg)"><animate attributeName="opacity" values="0;1;0" dur="0.4s" begin="0.3s" repeatCount="indefinite"/></circle>
-      <text x="40" y="250" fill="var(--ink3)" font-size="14" font-family="monospace">$ forge simulate --board uno ✓ running…</text>
+      <defs>
+        <linearGradient id="hb-mask" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#11463b"/>
+          <stop offset="100%" stop-color="#0b332d"/>
+        </linearGradient>
+        <linearGradient id="hb-smoke" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1c2b45"/>
+          <stop offset="100%" stop-color="#101a2e"/>
+        </linearGradient>
+        <radialGradient id="hb-shadow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#000" stop-opacity=".5"/>
+          <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="hb-vio" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#a78bfa" stop-opacity=".10"/>
+          <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="hb-cyan" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#22d3ee" stop-opacity=".09"/>
+          <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- Ambient glows + ground shadow -->
+      <circle cx="424" cy="108" r="130" fill="url(#hb-vio)"/>
+      <circle cx="96" cy="286" r="120" fill="url(#hb-cyan)"/>
+      <ellipse cx="258" cy="350" rx="212" ry="20" fill="url(#hb-shadow)"/>
+
+      <!-- UNO board -->
+      <g>
+        <rect x="64" y="104" width="240" height="148" rx="13" fill="url(#hb-mask)" stroke="#155a4a" stroke-width="1.5"/>
+        <rect x="64" y="104" width="240" height="46" rx="13" fill="#ffffff" opacity=".045"/>
+        <!-- barrel jack -->
+        <rect x="64" y="184" width="16" height="30" rx="4" fill="#0d1526" stroke="#1f3050"/>
+        <!-- USB-B socket -->
+        <rect x="64" y="116" width="18" height="36" rx="3.5" fill="#93a3b8"/>
+        <rect x="68" y="120" width="10" height="28" rx="2" fill="#c7d4e4" opacity=".55"/>
+        <!-- ATmega chip + legs -->
+        <rect x="128" y="150" width="86" height="30" rx="3.5" fill="#0e1424" stroke="#1e293b"/>
+        ${[0, 1, 2, 3, 4, 5].map(i => `<line x1="${138 + i * 13}" y1="150" x2="${138 + i * 13}" y2="144" stroke="#5d6f96" stroke-width="2"/><line x1="${138 + i * 13}" y1="180" x2="${138 + i * 13}" y2="186" stroke="#5d6f96" stroke-width="2"/>`).join('')}
+        <!-- crystal osc -->
+        <rect x="110" y="204" width="16" height="8" rx="3" fill="#b8c4d8" opacity=".8"/>
+        <!-- regulator + caps -->
+        <rect x="214" y="198" width="14" height="10" rx="2" fill="#0e1424" stroke="#1e293b"/>
+        <circle cx="240" cy="206" r="5.5" fill="#1f3050" stroke="#2b4068"/>
+        <circle cx="254" cy="206" r="5.5" fill="#1f3050" stroke="#2b4068"/>
+        <!-- silkscreen -->
+        <text x="128" y="132" fill="#d3efe0" font-size="13" font-family="monospace" opacity=".8" letter-spacing="1">UNO R3</text>
+        <text x="74" y="240" fill="#8fcbb4" font-size="7" font-family="monospace" opacity=".65">CIRCUITTECTURE · ATmega328P</text>
+        <!-- header sockets (top + bottom rows) -->
+        ${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => `<circle cx="${88 + i * 22.5}" cy="111.5" r="2.6" fill="#07120f" stroke="#1d4a3c" stroke-width="1"/>`).join('')}
+        ${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<circle cx="${99 + i * 22.5}" cy="244.5" r="2.6" fill="#07120f" stroke="#1d4a3c" stroke-width="1"/>`).join('')}
+        <!-- power LED on board -->
+        <circle cx="282" cy="226" r="3" fill="#4ade80">
+          <animate attributeName="opacity" values="1;.55;1" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        <text x="270" y="215" fill="#86efac" font-size="6" font-family="monospace" opacity=".7">ON</text>
+        <!-- right edge pins: D13 .. D9, GND -->
+        <circle cx="300" cy="122" r="3.2" fill="#fbbf24"/>
+        <text x="289" y="113.5" fill="#fde68a" font-size="7.5" font-family="monospace" text-anchor="end" opacity=".9">D13</text>
+        <circle cx="300" cy="146" r="3.2" fill="#22d3ee"/>
+        <text x="289" y="137.5" fill="#a5f3fc" font-size="7.5" font-family="monospace" text-anchor="end" opacity=".9">D9</text>
+        <circle cx="300" cy="238" r="3.2" fill="#7a8aa8"/>
+        <text x="289" y="229.5" fill="#94a3b8" font-size="7.5" font-family="monospace" text-anchor="end" opacity=".9">GND</text>
+      </g>
+
+      <!-- LED with gentle breathing glow -->
+      <g>
+        <circle cx="368" cy="130" r="24" fill="#ef4444" opacity=".16">
+          <animate attributeName="r" values="20;28;20" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".10;.22;.10" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="368" cy="130" r="13" fill="#dc2626" stroke="#f87171" stroke-width="1.2">
+          <animate attributeName="opacity" values="1;.74;1" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <ellipse cx="363" cy="124.5" rx="4.5" ry="3" fill="#fecaca" opacity=".85"/>
+        <line x1="362" y1="143" x2="362" y2="158" stroke="#9fb0d0" stroke-width="1.6"/>
+        <line x1="374" y1="143" x2="374" y2="158" stroke="#9fb0d0" stroke-width="1.6"/>
+        <text x="368" y="172" fill="#fca5a5" font-size="8" font-family="monospace" text-anchor="middle" opacity=".85">LED</text>
+      </g>
+
+      <!-- OLED module -->
+      <g>
+        <rect x="430" y="106" width="56" height="14" rx="3" fill="#1f6f4a" opacity=".9"/>
+        <rect x="408" y="114" width="78" height="64" rx="7" fill="url(#hb-smoke)" stroke="#2b4068" stroke-width="1.2"/>
+        <rect x="417" y="123" width="60" height="36" rx="2.5" fill="#060a14" stroke="#101826"/>
+        <text x="425" y="137" fill="#4ade80" font-size="7.5" font-family="monospace">Hello, maker!</text>
+        <text x="425" y="150" fill="#22d3ee" font-size="6.5" font-family="monospace">temp 24.5 °C</text>
+        <circle cx="414" cy="169" r="2.4" fill="#0d1526" stroke="#2b4068"/>
+        <circle cx="480" cy="169" r="2.4" fill="#0d1526" stroke="#2b4068"/>
+      </g>
+
+      <!-- Live wires -->
+      <path class="hero-wire" d="M300 122 C 328 122, 336 130, 355 130" stroke="#4ade80" stroke-width="2.2" fill="none"/>
+      <path class="hero-wire" d="M300 146 C 344 146, 368 122, 408 128" stroke="#22d3ee" stroke-width="2.2" fill="none" stroke-opacity=".85"/>
+      <path class="hero-wire" d="M374 158 C 374 214, 332 230, 300 238" stroke="#7890b0" stroke-width="1.8" fill="none" stroke-dasharray="4 4" stroke-opacity=".8"/>
+
+      <!-- Slow signal pulses gliding along the wires -->
+      <circle r="3" fill="#d9ffe9">
+        <animate attributeName="opacity" values="0;.95;.95;0" keyTimes="0;.1;.9;1" dur="4.5s" repeatCount="indefinite"/>
+        <animateMotion dur="4.5s" repeatCount="indefinite" path="M300 122 C 328 122, 336 130, 355 130"/>
+      </circle>
+      <circle r="3" fill="#bdeffb">
+        <animate attributeName="opacity" values="0;.85;.85;0" keyTimes="0;.1;.9;1" dur="6s" begin="1.4s" repeatCount="indefinite"/>
+        <animateMotion dur="6s" begin="1.4s" repeatCount="indefinite" path="M300 146 C 344 146, 368 122, 408 128"/>
+      </circle>
+
+      <!-- Console line with a calm blinking cursor -->
+      <text x="58" y="308" fill="var(--ink3)" font-size="12.5" font-family="monospace">$ forge simulate --board uno <tspan fill="var(--acc)">✓ running</tspan></text>
+      <rect x="332" y="298" width="7" height="13" fill="var(--acc)" opacity=".8">
+        <animate attributeName="opacity" values=".8;.8;0;0" keyTimes="0;.45;.55;1" dur="1.8s" repeatCount="indefinite"/>
+      </rect>
     `;
     $$('[data-auth]').forEach(b => b.addEventListener('click', () => authModal(b.getAttribute('data-auth'))));
+  }
+
+  /* After login the landing header swaps its auth buttons for a single
+     Dashboard CTA. Keep the mobile drawer in sync and re-arm links —
+     the burger listener survives because #mobile-burger-btn is re-created. */
+  function landNavSignedIn(me) {
+    const draw = document.querySelector('#mobile-nav-drawer .mobile-drawer-actions');
+    if (draw) draw.innerHTML = '<a href="/dashboard" class="btn primary block lg" style="text-decoration:none;text-align:center">Open Dashboard →</a>';
+    if (me && me.role === 'admin') {
+      const links = document.querySelector('#mobile-nav-drawer .mobile-drawer-links');
+      if (links && !links.querySelector('[href="/admin"]')) {
+        const a = document.createElement('a');
+        a.href = '/admin'; a.className = 'mobile-link'; a.textContent = '🛡️ Admin';
+        links.appendChild(a);
+      }
+    }
   }
 
   function authModal(mode) {
@@ -410,6 +439,13 @@
         <div class="input-icon-wrap">
           <span class="input-icon">👤</span>
           <input id="af-name" type="text" placeholder="Ada Lovelace" autocomplete="name">
+        </div>
+      </div>
+      <div class="field">
+        <label>I am a…</label>
+        <div class="role-pick" id="af-role">
+          <button type="button" class="role-opt active" data-role="user">🎓 Student / Maker</button>
+          <button type="button" class="role-opt" data-role="teacher">🧑‍🏫 Teacher</button>
         </div>
       </div>` : ''}
       <div class="field">
@@ -437,6 +473,9 @@
     const nameInput = body.querySelector('#af-name'), emailInput = body.querySelector('#af-email'), passInput = body.querySelector('#af-pass');
     
     body.querySelector('#af-switch').addEventListener('click', (e) => { e.preventDefault(); m.close(); authModal(isUp ? 'login' : 'signup'); });
+
+    const rolePick = body.querySelector('#af-role');
+    if (rolePick) rolePick.addEventListener('click', e => { const b = e.target.closest('.role-opt'); if (!b) return; rolePick.querySelectorAll('.role-opt').forEach(x => x.classList.toggle('active', x === b)); });
     
     const forgotBtn = body.querySelector('#af-forgot');
     if (forgotBtn) {
@@ -458,13 +497,17 @@
       goBtn.disabled = true;
       goBtn.textContent = 'Please wait...';
       try {
+        const roleEl = body.querySelector('#af-role .role-opt.active');
         const r = isUp
-          ? await api('/api/signup', 'POST', { name: nameInput ? nameInput.value.trim() : '', email: emailInput.value.trim(), pass: passInput.value })
+          ? await api('/api/signup', 'POST', { name: nameInput ? nameInput.value.trim() : '', email: emailInput.value.trim(), pass: passInput.value, role: roleEl ? roleEl.getAttribute('data-role') : undefined })
           : await api('/api/login', 'POST', { email: emailInput.value.trim(), pass: passInput.value });
         app.user = r.user; m.close();
         toast(`Welcome, ${r.user.name.split(' ')[0]}!`, 'ok');
+        if (isUp && r.user.role === 'teacher') toast('Teacher account ready — open the 🎓 Classroom tab to create your first class.', 'ok', 6000);
+        landNavSignedIn(r.user); // keep the drawer/nav in sync without a reload
         const curPage = location.pathname.replace(/\.html$/, '').replace(/\/$/, '') || '/';
-        if (curPage !== '/dashboard') location.href = '/dashboard';
+        const dest = new URLSearchParams(location.search).get('next') || '/dashboard';
+        if (curPage !== '/dashboard') location.href = dest;
         else enterDashboard(!isUp);
       } catch (e) {
     m.body.querySelector('#af-err').textContent = e.message;
@@ -483,12 +526,10 @@
     if (app.user.role !== 'admin' && app.dashTab === 'admin') app.dashTab = 'mine';
     show('dashboard');
     $('#user-chip').innerHTML = `<span class="a-face">${app.user.avatar || '🧑‍🔧'}</span><span>${esc(app.user.name.split(' ')[0])}</span>`;
-    const dashAdminBtn = $('#dash-admin-btn');
-    if (dashAdminBtn) dashAdminBtn.classList.toggle('hidden', app.user.role !== 'admin');
     $$('.tab').forEach(t => t.classList.toggle('active', t.getAttribute('data-tab') === app.dashTab));
-    renderDashHeader();
     loadStats();
     await loadProjects();
+    renderDashHeader();
     if (firstLogin && !localStorage.getItem('cf-toured-dash')) setTimeout(() => CS.tour && CS.tour.dashboard(), 600);
   }
   function renderDashHeader() {
@@ -566,9 +607,24 @@
       }
       if (app.dashTab === 'community') {
         const { projects } = await api('/api/community');
-        const filtered = projects.filter(p =>
-          (!app.search || (p.name + ' ' + (p.tags || []).join(' ') + ' ' + boardName(p.board)).toLowerCase().includes(app.search)));
-        return renderProjectGrid(grid, filtered, 'community');
+        const boardsIn = [...new Set(projects.map(p => p.board).filter(Boolean))];
+        if (app.boardFilter && !boardsIn.includes(app.boardFilter)) app.boardFilter = '';
+        const filtered = sortProjects(projects.filter(p =>
+          (!app.boardFilter || p.board === app.boardFilter) &&
+          (!app.search || (p.name + ' ' + (p.tags || []).join(' ') + ' ' + boardName(p.board) + ' ' + (p.desc || '')).toLowerCase().includes(app.search))));
+        const out = renderProjectGrid(grid, filtered, 'community');
+        if (boardsIn.length > 1) {
+          const chips = document.createElement('div');
+          chips.className = 'comm-filters';
+          chips.innerHTML = [`<button class="chip-f${!app.boardFilter ? ' active' : ''}" data-b="">All boards</button>`,
+            ...boardsIn.map(b => `<button class="chip-f${app.boardFilter === b ? ' active' : ''}" data-b="${b}">${esc(BOARD_NAMES[b] || b)}</button>`)].join('');
+          chips.querySelectorAll('[data-b]').forEach(ch => ch.addEventListener('click', () => { app.boardFilter = ch.getAttribute('data-b'); loadProjects(); }));
+          grid.prepend(chips);
+        }
+        return out;
+      }
+      if (app.dashTab === 'classroom') {
+        return renderClassroom(grid);
       }
       const { projects } = await api('/api/projects');
       app.myProjects = projects;
@@ -765,7 +821,7 @@
            <h4>${esc(p.name)}</h4>
            <div class="pc-meta"><span>${boardName(p.board)}</span><span>${ctx === 'community' ? `by ${esc(p.owner.name.split(' ')[0])} · ` : ''}${CS.fmtTime(p.updatedAt)}</span></div>
            ${(p.tags || []).length ? `<div class="pc-tags">${p.tags.slice(0, 3).map(t => `<span>#${esc(t)}</span>`).join('')}</div>` : ''}
-           ${ctx === 'community' ? `<div class="pc-meta" style="margin-top:6px"><span>❤️ ${p.likes} · ⑂ ${p.forks}</span><button class="btn ghost xs" data-like>${p.liked ? '💙 liked' : '🤍 like'}</button></div>` : ''}
+           ${ctx === 'community' ? `<div class="pc-meta" style="margin-top:6px"><span>❤️ ${p.likes} · ⑂ ${p.forks}</span><span><button class="btn ghost xs" data-like>${p.liked ? '💙 liked' : '🤍 like'}</button> <button class="btn ghost xs" data-report title="Report this project">🚩</button></span></div>` : ''}
          </div>`;
       
       // Add ARIA labels and keyboard navigation
@@ -786,6 +842,13 @@
               act.click();
             } else {
               openProject(p.id);
+            }
+          } else if (ctx === 'community' && e.target.closest('[data-report]')) {
+            e.stopPropagation();
+            const reason = prompt('Why are you reporting this project? (spam, unsafe wiring advice, stolen work…)');
+            if (reason && reason.trim()) {
+              try { await api('/api/moderation/report', 'POST', { projectId: p.id, reason: reason.trim().slice(0, 500) }); toast('Reported — our moderators will take a look 🛡️'); }
+              catch (err) { toast(err.message, 'err'); }
             }
           } else if (ctx === 'community' && e.target.closest('[data-like]')) {
             const likeBtn = e.target.closest('[data-like]');
@@ -851,7 +914,7 @@
       { icon: p.public ? '🙈' : '🌍', label: p.public ? 'Unpublish from community' : 'Publish to community', fn: async () => { try { await api(`/api/projects/${p.id}`, 'PUT', { public: !p.public }); toast(!p.public ? 'Published' : 'Unpublished'); loadProjects(); } catch (err) { toast(err.message, 'err'); } } },
       { icon: '🔗', label: 'Share…', fn: () => openProject(p.id, true) },
       '-',
-      { icon: '🗑', label: 'Delete', danger: true, fn: async () => { if (!confirm(`Delete project "${p.name}"?\nLast modified: ${new Date(p.updatedAt).toLocaleString()}\n\nThis cannot be undone.`)) return; try { await api(`/api/projects/${p.id}`, 'DELETE'); toast('Deleted'); loadProjects(); } catch (err) { toast(err.message, 'err'); } } }
+      { icon: '🗑', label: 'Delete', danger: true, fn: () => deleteProjectUndoable(p) }
     ]);
   }
   async function exportProjectJson(p) {
@@ -900,39 +963,28 @@
   /* ================= new project ================= */
   function newProjectModal() {
     const body = document.createElement('div');
-    const tpls = [{ id: '', name: 'Blank canvas', icon: '⬜', desc: 'Empty bench — you pick the board.' }, ...CS.templates];
     body.innerHTML = `
       <div class="field"><label>Project name</label><input id="np-name" placeholder="My awesome gadget"></div>
       <div class="field" style="display:flex;gap:10px">
         <div style="flex:1"><label>Board</label><select id="np-board">${Object.entries(BOARD_NAMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
         <div style="flex:1"><label>Language</label><select id="np-lang"><option value="cpp">Arduino C/C++</option><option value="py">MicroPython</option></select></div>
-      </div>
-      <div class="field"><label>Start from</label><div class="tpl-grid" id="np-tpls" style="max-height:250px;overflow-y:auto"></div></div>`;
-    const m = modal({ title: '✨ New Project', body, wide: true });
-    let selTpl = '';
-    const grid = body.querySelector('#np-tpls');
-    grid.innerHTML = tpls.map(t => `<div class="tpl-card" data-t="${t.id}" style="${t.id === '' ? 'border-color:var(--acc)' : ''}"><div class="t-ic">${t.icon}</div><h5>${esc(t.name)}</h5><p>${esc(t.desc)}</p></div>`).join('');
-    grid.querySelectorAll('.tpl-card').forEach(c => c.addEventListener('click', () => {
-      selTpl = c.getAttribute('data-t');
-      grid.querySelectorAll('.tpl-card').forEach(x => x.style.borderColor = '');
-      c.style.borderColor = 'var(--acc)';
-      if (selTpl) { const t = CS.templates.find(x => x.id === selTpl); if (t) { body.querySelector('#np-board').value = t.board; body.querySelector('#np-lang').value = t.lang; if (!body.querySelector('#np-name').value) body.querySelector('#np-name').value = t.name; } }
-    }));
+      </div>`;
+    try {
+      const lb = localStorage.getItem('ct_np_board'), ll = localStorage.getItem('ct_np_lang');
+      if (lb && body.querySelector(`#np-board option[value="${lb}"]`)) body.querySelector('#np-board').value = lb;
+      if (ll && body.querySelector(`#np-lang option[value="${ll}"]`)) body.querySelector('#np-lang').value = ll;
+    } catch {}
+    const m = modal({ title: '✨ New Project', body });
     const btn = document.createElement('button'); btn.className = 'btn primary block lg'; btn.textContent = 'Create project 🚀';
     btn.style.marginTop = '12px';
     btn.addEventListener('click', async () => {
       const name = body.querySelector('#np-name').value.trim() || 'Untitled Project';
       const board = body.querySelector('#np-board').value;
       const lang = body.querySelector('#np-lang').value;
-      let code = lang === 'py' ? '# ' + name + '\nfrom machine import Pin\nimport time\n\n# setup\n\nwhile True:\n    pass\n    time.sleep(0.5)' : '// ' + name + '\n\nvoid setup() {\n  Serial.begin(9600);\n}\n\nvoid loop() {\n  \n}\n';
-      let components = [], wires = [];
-      if (selTpl) {
-        const t = CS.templates.find(x => x.id === selTpl);
-        const b = t.build();
-        code = b.code; components = b.components; wires = b.wires;
-      }
+      try { localStorage.setItem('ct_np_board', board); localStorage.setItem('ct_np_lang', lang); } catch {}
+      const code = starterSketch(name, lang);
       try {
-        const { project } = await api('/api/projects', 'POST', { name, board, lang, code, components, wires });
+        const { project } = await api('/api/projects', 'POST', { name, board, lang, code, components: [], wires: [] });
         m.close();
         openProject(project.id);
         toast('Project created — happy hacking! ⚡');
@@ -943,6 +995,114 @@
   async function forkProject(id) {
     try { const { project } = await api(`/api/projects/${id}/fork`, 'POST', {}); toast('Forked to your lab! ⑂'); openProject(project.id); }
     catch (e) { toast(e.message, 'err'); }
+  }
+
+  /* ================= multi-board sketches =================
+     Every microcontroller on the bench owns a sketch (code + language +
+     breakpoints), keyed by the MCU component id. Boards run in parallel
+     in the simulator and can be linked by wiring TX → RX (UART bridge). */
+  app.sketches = {};
+  app.archivedSketches = {};
+  app.activeBoardId = null;
+
+  function starterSketch(name, lang) {
+    return lang === 'py'
+      ? '# ' + name + '\nfrom machine import Pin\nimport time\n\n# setup\n\nwhile True:\n    pass\n    time.sleep(0.5)'
+      : '// ' + name + '\n\nvoid setup() {\n  Serial.begin(9600);\n}\n\nvoid loop() {\n  \n}\n';
+  }
+  CS.app.starterSketch = starterSketch;
+
+  function canvasMcus() {
+    return (CS.canvas && CS.canvas.doc ? CS.canvas.doc.components : []).filter(c => (CS.defs[c.type] || {}).mcu);
+  }
+  function boardTabName(comp) {
+    const mcus = canvasMcus();
+    const name = ((CS.defs[comp.type] || {}).name || comp.type).replace('Arduino ', '');
+    return mcus.length > 1 ? `${name} ${mcus.indexOf(comp) + 1}` : name;
+  }
+
+  function stashActiveSketch() {
+    if (!app.activeBoardId || !CS.editor) return;
+    const sk = app.sketches[app.activeBoardId] = app.sketches[app.activeBoardId] || {};
+    sk.code = CS.editor.getCode();
+    sk.lang = $('#lang-select').value;
+    sk.breakpoints = [...(CS.editor.breakpoints || [])];
+  }
+
+  function loadActiveSketch() {
+    if (!CS.editor) return;
+    const sk = app.activeBoardId ? app.sketches[app.activeBoardId] : null;
+    if (!sk) return; // no board: leave the editor as-is (code survives board swaps)
+    CS.editor.setLang(sk.lang || 'cpp');
+    $('#lang-select').value = sk.lang || 'cpp';
+    CS.editor.setCode(sk.code || '');
+    CS.editor.breakpoints = new Set(sk.breakpoints || []);
+    if (CS.editor.paintGutter) CS.editor.paintGutter();
+  }
+
+  // Reconcile app.sketches with the boards actually on the canvas.
+  // `orphan` (optional) = code with no home, adopted by the first new board.
+  function syncBoardsFromCanvas(orphan) {
+    if (!CS.canvas || !CS.canvas.doc) return;
+    const mcus = canvasMcus();
+    const live = new Set(mcus.map(m => m.id));
+    Object.keys(app.sketches).forEach(id => {
+      if (!live.has(id)) { app.archivedSketches[id] = app.sketches[id]; delete app.sketches[id]; }
+    });
+    if (orphan === undefined && !app.activeBoardId && !Object.keys(app.sketches).length && mcus.length && CS.editor) {
+      const code = CS.editor.getCode();
+      if (code && code.trim()) orphan = { code, lang: $('#lang-select').value };
+    }
+    mcus.forEach(m => {
+      if (app.sketches[m.id]) return;
+      if (app.archivedSketches[m.id]) { // undo restored the board → restore its sketch
+        app.sketches[m.id] = app.archivedSketches[m.id];
+        delete app.archivedSketches[m.id];
+      } else if (orphan && orphan.code && orphan.code.trim()) {
+        app.sketches[m.id] = { code: orphan.code, lang: orphan.lang === 'py' ? 'py' : 'cpp', breakpoints: [] };
+        orphan = null;
+      } else {
+        const lang = mcus.length <= 1 && $('#lang-select') ? $('#lang-select').value : 'cpp';
+        app.sketches[m.id] = { code: starterSketch((CS.defs[m.type] || {}).name || 'Sketch', lang), lang, breakpoints: [] };
+      }
+    });
+    if (!live.has(app.activeBoardId)) {
+      app.activeBoardId = mcus.length ? mcus[0].id : null;
+      loadActiveSketch();
+      if (CS.sim) { CS.sim.debugBoardId = app.activeBoardId; }
+    }
+    renderBoardTabs(mcus);
+  }
+  const scheduleBoardSync = debounce(() => { if (app.project && app.view === 'editor-view') syncBoardsFromCanvas(); }, 250);
+
+  function switchBoard(id) {
+    if (!id || id === app.activeBoardId || !app.sketches[id]) return;
+    stashActiveSketch();
+    app.activeBoardId = id;
+    loadActiveSketch();
+    if (CS.sim) { CS.sim.debugBoardId = id; CS.sim.breakpoints = CS.editor.breakpoints; }
+    if (CS.editor && CS.editor.setExecLine) CS.editor.setExecLine(0);
+    renderBoardTabs();
+    refreshWatch();
+  }
+
+  function renderBoardTabs(mcus) {
+    const bar = $('#board-tabs');
+    if (!bar) return;
+    mcus = mcus || canvasMcus();
+    if (!mcus.length) {
+      bar.innerHTML = '<span class="board-tabs-empty">💡 Add a board from the library — this sketch will become its program.</span>';
+      return;
+    }
+    bar.innerHTML = mcus.map(m => {
+      const def = CS.defs[m.type] || {};
+      const sk = app.sketches[m.id] || {};
+      const active = m.id === app.activeBoardId;
+      return `<button class="board-tab${active ? ' active' : ''}" data-board="${m.id}" title="${esc(def.name || m.type)} — each board runs its own sketch; wire TX→RX to link boards">
+        <span class="bt-ico">${def.icon || '🖥️'}</span><span class="bt-name">${esc(boardTabName(m))}</span><span class="bt-lang">${sk.lang === 'py' ? 'py' : 'ino'}</span>
+      </button>`;
+    }).join('');
+    bar.querySelectorAll('[data-board]').forEach(b => b.addEventListener('click', () => switchBoard(b.getAttribute('data-board'))));
   }
 
   /* ================= editor ================= */
@@ -978,12 +1138,24 @@
       app.dirty = false;
       setupEditorOnce();
       $('#proj-name').value = project.name;
-      CS.editor.setLang(project.lang || 'cpp');
-      $('#lang-select').value = project.lang || 'cpp';
-      CS.editor.setCode(project.code || '');
+      // per-board sketches, migrating legacy single {code, lang} projects
+      app.sketches = {};
+      app.archivedSketches = {};
+      app.activeBoardId = null;
+      const savedSk = (project.sketches && typeof project.sketches === 'object') ? project.sketches : {};
+      Object.keys(savedSk).forEach(id => { if (savedSk[id]) app.sketches[id] = { code: savedSk[id].code || '', lang: savedSk[id].lang === 'py' ? 'py' : 'cpp', breakpoints: [] }; });
       CS.canvas.setDoc({ components: project.components || [], wires: project.wires || [], viewport: project.viewport });
+      syncBoardsFromCanvas({ code: project.code || '', lang: project.lang || 'cpp' });
+      if (app.activeBoardId) loadActiveSketch();
+      else { // no board yet — keep the legacy code visible; it gets adopted by the first board dropped in
+        CS.editor.setLang(project.lang || 'cpp');
+        $('#lang-select').value = project.lang || 'cpp';
+        CS.editor.setCode(project.code || '');
+      }
       buildLibrary(false);
       refreshGuide(); refreshChecker(); updateCanvasHint(); updateUndoBtns();
+      applyReadOnlyShell(project);
+      maybeTouchBanner();
       serialWrite('— project loaded: ' + project.name + ' —', true);
       if (openShare) shareModal();
       if (!localStorage.getItem('cf-toured-editor')) setTimeout(() => CS.tour && CS.tour.editor(), 700);
@@ -993,15 +1165,45 @@
     }
   }
 
-  async function saveProject(withVersion) {
+  // Non-owned projects (submissions a teacher opens, forkable publics, moderations)
+  // open in a read-only shell: no canvas/code edits, no save — fork to make changes.
+  function applyReadOnlyShell(project) {
+    const ro = !project.own;
+    $('#ro-banner') && $('#ro-banner').remove();
+    if ($('#save-btn')) $('#save-btn').style.display = ro ? 'none' : '';
+    if ($('#proj-name')) $('#proj-name').disabled = ro;
+    if (CS.editor) {
+      if (CS.editor.ta) CS.editor.ta.readOnly = ro;
+      if (CS.editor.monacoEditor) CS.editor.monacoEditor.updateOptions({ readOnly: ro });
+    }
+    if (CS.canvas) CS.canvas.readOnly = ro;
+    if (!ro) return;
+    const b = document.createElement('div');
+    b.id = 'ro-banner';
+    b.className = 'ro-banner';
+    const ownerName = (project.owner && project.owner.name) || 'another maker';
+    b.innerHTML = `<span>👁 Viewing <b>${esc(ownerName)}</b>’s project — read-only review.</span> ${app.user ? '<button class="btn primary xs" id="ro-fork">⑂ Fork to edit</button>' : ''}`;
+    document.body.appendChild(b);
+    const f = b.querySelector('#ro-fork');
+    if (f) f.addEventListener('click', () => forkProject(project.id));
+  }
+
+  async function saveProject() {
     if (!app.project) return;
     const doc = CS.canvas.getDoc();
+    stashActiveSketch();
+    const liveMcuIds = (doc.components || []).filter(c => (CS.defs[c.type] || {}).mcu).map(c => c.id);
+    const sketches = {};
+    liveMcuIds.forEach(id => { const sk = app.sketches[id]; if (sk) sketches[id] = { code: sk.code || '', lang: sk.lang === 'py' ? 'py' : 'cpp' }; });
+    const activeSk = (app.activeBoardId && sketches[app.activeBoardId]) || sketches[liveMcuIds[0]] || null;
     const payload = {
-      code: CS.editor.getCode(), components: doc.components, wires: doc.wires, viewport: doc.viewport,
-      lang: $('#lang-select').value, name: $('#proj-name').value.trim() || app.project.name,
+      code: activeSk ? activeSk.code : CS.editor.getCode(), // legacy mirror → active board's sketch
+      lang: activeSk ? activeSk.lang : $('#lang-select').value,
+      sketches,
+      components: doc.components, wires: doc.wires, viewport: doc.viewport,
+      name: $('#proj-name').value.trim() || app.project.name,
       thumb: miniThumb(doc.components, doc.wires)
     };
-    if (withVersion) payload.saveVersion = prompt('Version name (e.g. "working servo sweep"):') || undefined;
     setSaveState('saving');
     try {
       if (app.project.official && app.user && app.user.role !== 'admin') {
@@ -1014,7 +1216,6 @@
       app.project.name = payload.name;
       app.dirty = false;
       setSaveState('saved');
-      if (withVersion) toast('Snapshot saved 📸');
     } catch (e) { setSaveState('idle'); toast('Save failed: ' + e.message, 'err'); }
   }
   function setSaveState(s) {
@@ -1044,89 +1245,33 @@
     CS.canvas = new CS.CircuitCanvas($('#circuit'));
     CS.editor = new CS.CodeEditor($('#code-editor'));
     CS.sim = new CS.Engine();
+    applyEditorTheme(localStorage.getItem('ct-code-theme') || 'vs-dark');
     bindEditorUI();
     CS.editor.onChange = () => { markDirty(); hideErr(); };
-    CS.editor.onProblemsChange = renderProblems;
-    CS.bus.on('docChanged', () => { markDirty(); refreshGuide(); refreshChecker(); updateCanvasHint(); renderMiniMap(); updateScopePinOptions(); sendDocChange(); });
+    CS.editor.onProblemsChange = items => { diagProblems = items || []; renderProblemsPanel(); };
+    CS.bus.on('docChanged', () => { markDirty(); refreshGuide(); refreshChecker(); updateCanvasHint(); renderMiniMap(); updateScopePinOptions(); scheduleBoardSync(); });
     CS.bus.on('canvasRendered', renderMiniMap);
     CS.bus.on('selectionChanged', renderInspector);
     CS.bus.on('wireAdded', () => { });
     CS.bus.on('viewChanged', () => { $('#zoom-level').textContent = Math.round(CS.canvas.view.z * 100) + '%'; renderMiniMap(); });
     CS.bus.on('undoState', updateUndoBtns);
-    connectMultiplayer();
+    bindPalette();
+    // Restore persisted editor font size
+    try {
+      const f = localStorage.getItem('ct_editor_font');
+      if (f && $(`#editor-font option[value="${f}"]`)) { $('#editor-font').value = f; CS.editor.setFontSize && CS.editor.setFontSize(+f); }
+    } catch {}
+    // Autosave: dirty projects save themselves every 60 s (never while the simulator is running)
+    if (!app._autosaveTimer) app._autosaveTimer = setInterval(async () => {
+      if (app.view !== 'editor-view' || !app.dirty || !app.project || !app.project.id) return;
+      if (CS.canvas && CS.canvas.readOnly) return;
+      if (CS.sim && CS.sim.state === 'running') return;
+      if (!navigator.onLine) return;
+      await saveProject();
+      if (!app.dirty) toast('💾 Autosaved', 'ok', 1500);
+    }, 60000);
   }
 
-  /* ---------- Multiplayer frontend ---------- */
-  let multiplayerWs = null;
-  function connectMultiplayer() {
-    if (!app.project || multiplayerWs) return;
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${proto}//${location.host}/ws/project/${app.project.id}`;
-    try {
-      multiplayerWs = new WebSocket(wsUrl);
-      multiplayerWs.onopen = function () { /* connected */ };
-      multiplayerWs.onmessage = function (ev) {
-        try {
-          const msg = JSON.parse(ev.data);
-          if (msg.type === 'doc_change' && msg.userId !== (CS.user && CS.user.id)) {
-            if (CS.canvas && msg.components) CS.canvas.doc.components = msg.components;
-            if (CS.canvas && msg.wires) CS.canvas.doc.wires = msg.wires;
-            if (CS.canvas) CS.canvas.render();
-          } else if (msg.type === 'presence') {
-            updateMultiplayerPresence(msg);
-          } else if (msg.type === 'cursor' && msg.userId !== (CS.user && CS.user.id)) {
-            renderRemoteCursor(msg);
-          }
-        } catch { /* ignore */ }
-      };
-      multiplayerWs.onclose = function () { multiplayerWs = null; };
-      multiplayerWs.onerror = function () { if (multiplayerWs) { multiplayerWs.close(); multiplayerWs = null; } };
-    } catch { /* ignore */ }
-  }
-  function sendDocChange() {
-    if (!multiplayerWs || multiplayerWs.readyState !== WebSocket.OPEN) return;
-    if (!CS.canvas) return;
-    multiplayerWs.send(JSON.stringify({
-      type: 'doc_change',
-      components: CS.canvas.doc.components,
-      wires: CS.canvas.doc.wires
-    }));
-  }
-  function updateMultiplayerPresence(msg) {
-    let bar = $('#mp-presence');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.id = 'mp-presence';
-      bar.style.cssText = 'position:absolute;top:46px;left:0;right:0;z-index:50;background:var(--panel2);border-bottom:1px solid var(--line2);padding:4px 12px;font-size:11px;display:flex;gap:8px;align-items:center;color:var(--ink2)';
-      const canvasWrap = $('#canvas-wrap');
-      if (canvasWrap) canvasWrap.style.position = 'relative';
-      if (canvasWrap) canvasWrap.appendChild(bar);
-    }
-    // Remove old entries for this user
-    const existing = bar.querySelector(`[data-mp-user="${esc(msg.user && msg.user.id || 'guest')}"]`);
-    if (existing) existing.remove();
-    if (msg.action === 'leave') return;
-    const chip = document.createElement('span');
-    chip.setAttribute('data-mp-user', esc(msg.user && msg.user.id || 'guest'));
-    chip.style.cssText = `display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;background:var(--bg1);font-size:11px`;
-    chip.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${esc(msg.color || '#22c55e')}"></span>${esc(msg.user && msg.user.name || 'Guest')} ${msg.action === 'join' ? 'joined' : 'left'}`;
-    bar.appendChild(chip);
-  }
-  function renderRemoteCursor(msg) {
-    let el = document.getElementById('mp-cursor-' + esc(msg.userId));
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'mp-cursor-' + esc(msg.userId);
-      el.style.cssText = 'position:absolute;width:12px;height:12px;border-radius:50%;pointer-events:none;z-index:9999;transition:transform 0.15s;border:2px solid white';
-      const canvasWrap = $('#canvas-wrap');
-      if (canvasWrap) canvasWrap.appendChild(el);
-    }
-    el.style.background = esc(msg.color || '#22c55e');
-    if (CS.canvas) {
-      const v = CS.canvas.view;
-      el.style.transform = `translate(${(msg.x - v.x) * v.z}px, ${(msg.y - v.y) * v.z}px)`;
-    }
-  }
   function updateUndoBtns() { $('#undo-btn').disabled = !CS.canvas.undoStack.length; $('#redo-btn').disabled = !CS.canvas.redoStack.length; }
   function updateCanvasHint() {
     const hint = $('#canvas-hint');
@@ -1134,7 +1279,7 @@
     const count = CS.canvas.doc.components.length;
     hint.style.display = count ? 'none' : '';
     if (!count) {
-      hint.querySelector('p').innerHTML = 'Drag components from the <b>parts bin</b> on the left, then <b>click a pin</b> and drag to another pin to wire them. Press <b>▶</b> to run your code.';
+      hint.querySelector('p').innerHTML = 'Drag components from the <b>parts bin</b> on the left, then <b>click a pin</b> and drag to another pin to wire them. Press <b>▶</b> to run your code. <span style="color:var(--ink3)">Scroll to pan · Ctrl+scroll to zoom.</span>';
     }
   }
   function miniMapPoint(e) {
@@ -1197,7 +1342,18 @@
         item.setAttribute('aria-label', `Add ${d.name} to canvas`);
         item.innerHTML = `<span class="li-ic">${d.icon}</span><span><div class="li-name">${esc(d.name)}</div><div class="li-sub">${d.pins.length} pin${d.pins.length !== 1 ? 's' : ''}</div></span>`;
         item.title = d.desc || d.name;
-        item.addEventListener('dragstart', e => { e.dataTransfer.setData('cf/type', d.type); item.classList.add('dragging'); });
+        item.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('cf/type', d.type);
+          e.dataTransfer.effectAllowed = 'copy';
+          item.classList.add('dragging');
+          // custom drag preview: a chip with the part icon + name, sized like the drop
+          const g = document.createElement('div');
+          g.className = 'lib-drag-ghost';
+          g.textContent = `${d.icon}  ${d.name}`;
+          document.body.appendChild(g);
+          try { e.dataTransfer.setDragImage(g, 24, 18); } catch {}
+          requestAnimationFrame(() => { g.classList.add('gone'); setTimeout(() => g.remove(), 0); });
+        });
         item.addEventListener('dragend', () => item.classList.remove('dragging'));
         item.addEventListener('dblclick', () => { const v = CS.canvas.view, r = CS.canvas.svg.getBoundingClientRect(); CS.canvas.addComponent(d.type, (r.width / 2 - v.x) / v.z - d.w / 2 + (Math.random() * 40 - 20), (r.height / 2 - v.y) / v.z - d.h / 2 + (Math.random() * 40 - 20)); });
         item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.dispatchEvent(new Event('dblclick')); } });
@@ -1207,18 +1363,57 @@
     if (!shown) list.innerHTML = `<div class="empty-state" style="padding:34px 8px"><span class="e-icon">🔍</span><h3>No parts found</h3><p>Try "led", "sensor", "servo"…</p></div>`;
   }
 
-  /* ---------- editor problems ---------- */
-  function renderProblems(items) {
-    const panel = $('#problems-panel'), list = $('#problems-list');
-    if (!panel || !list) return;
-    const problems = items || (CS.editor && CS.editor.problems) || [];
-    panel.classList.toggle('hidden', !problems.length);
-    list.innerHTML = problems.length ? problems.map(p => `<button class="problem-row ${p.severity === 'warning' ? 'warn' : 'err'}" data-line="${p.line || 1}"><span>${p.severity === 'warning' ? '🟡' : '🔴'}</span><span>Line ${p.line || '?'}: ${esc(p.message || '')}</span></button>`).join('') : '';
-    attachProblemHandlers();
+  /* ---------- problems panel — one unified view of
+     code diagnostics (editor markers) + circuit checker (static net issues) ---------- */
+  let diagProblems = [];      // from CS.editor (code)
+  let checkerIssues = [];     // from refreshChecker (circuit)
+  function focusComponent(compId) {
+    const c = CS.canvas && CS.canvas.compById(compId);
+    if (!c) return;
+    CS.canvas.clearSelection();
+    CS.canvas.selection.add(c.id);
+    if (c._g) c._g.classList.add('selected');
+    CS.bus.emit('selectionChanged');
+    const def = CS.defs[c.type];
+    if (def) {
+      CS.canvas.view.x = -c.x * CS.canvas.view.z + 200;
+      CS.canvas.view.y = -c.y * CS.canvas.view.z + 100;
+      CS.canvas.applyView();
+    }
   }
-
-  function attachProblemHandlers() {
-    $$('#problems-list [data-line]').forEach(b => b.addEventListener('click', () => CS.editor && CS.editor.revealLine && CS.editor.revealLine(+b.getAttribute('data-line'))));
+  function renderProblemsPanel(issues) {
+    if (issues) checkerIssues = issues;
+    const panel = $('#problems-panel'), list = $('#problems-list'), count = $('#problems-count');
+    if (!panel || !list) return;
+    const rows = [];
+    diagProblems.forEach(p => rows.push({
+      cls: p.severity === 'warning' ? 'problem-warn' : 'problem-error',
+      icon: p.severity === 'warning' ? '🟡' : '🔴',
+      text: `Line ${p.line || '?'}: ${p.message || ''}`,
+      meta: 'code',
+      act: () => CS.editor && CS.editor.revealLine && CS.editor.revealLine(p.line || 1)
+    }));
+    checkerIssues.forEach(i => rows.push({
+      cls: i.level === 'err' ? 'problem-error' : 'problem-warn',
+      icon: i.level === 'err' ? '🔴' : '🟡',
+      text: i.text,
+      meta: i.comp ? 'circuit' : '',
+      comp: i.comp || null
+    }));
+    if (count) count.textContent = rows.length;
+    panel.classList.toggle('hidden', !rows.length);
+    if (!rows.length) { list.innerHTML = '<div class="problem-empty">No problems detected ✓</div>'; return; }
+    list.innerHTML = '';
+    rows.forEach((r, idx) => {
+      const el = document.createElement('div');
+      el.className = `problem-item ${r.cls}`;
+      el.style.animationDelay = (idx * 0.04) + 's';
+      el.title = r.meta === 'code' ? 'Jump to line' : (r.comp ? 'Locate on canvas' : '');
+      el.innerHTML = `<span class="problem-icon">${r.icon}</span><span class="problem-text">${esc(r.text)}</span>${r.meta ? `<span class="problem-line">${esc(r.meta)}</span>` : ''}`;
+      if (r.act) el.addEventListener('click', r.act);
+      if (r.comp) el.addEventListener('click', () => focusComponent(r.comp));
+      list.appendChild(el);
+    });
   }
 
   /* ---------- inspector ---------- */
@@ -1342,19 +1537,39 @@
     return `${c.label || d.name} · ${ref.p}`;
   }
 
-  /* ---------- wiring guide ---------- */
-  CS.wiringGuide = function (doc) {
+  /* ---------- static net analysis ---------- */
+  // Union-find over the wire graph + internal component links (breadboard rails etc).
+  // Powers the Wiring Guide and the circuit checker while nothing is running.
+  CS.staticNets = function (doc) {
     const parent = new Map();
     const find = x => { if (!parent.has(x)) parent.set(x, x); let r = x; while (parent.get(r) !== r) r = parent.get(r); parent.set(x, r); return r; };
-    const union = (a, b) => parent.set(find(b), find(a));
-    doc.wires.forEach(w => union(w.a.c + '.' + w.a.p, w.b.c + '.' + w.b.p));
-    doc.components.forEach(c => { const d = CS.defs[c.type]; if (d && d.links) (typeof d.links === 'function' ? d.links() : d.links).forEach(([a, b]) => union(c.id + '.' + a, c.id + '.' + b)); });
+    doc.wires.forEach(w => parent.set(find(w.b.c + '.' + w.b.p), find(w.a.c + '.' + w.a.p)));
+    doc.components.forEach(c => {
+      const d = CS.defs[c.type];
+      if (d && d.links) (typeof d.links === 'function' ? d.links() : d.links).forEach(([a, b]) => parent.set(find(c.id + '.' + b), find(c.id + '.' + a)));
+    });
+    return {
+      root(node) { return parent.has(node) ? find(node) : node; },
+      has(node) { return parent.has(node); }
+    };
+  };
+
+  /* ---------- wiring guide ---------- */
+  CS.wiringGuide = function (doc) {
+    const nets = CS.staticNets(doc);
+    const find = nets.root;
+    // disambiguate multiple boards: "Uno R3 1", "Uno R3 2"…
+    const mcuNames = new Map();
+    {
+      const mcus = doc.components.filter(c => (CS.defs[c.type] || {}).mcu);
+      mcus.forEach((c, i) => mcuNames.set(c.id, `${CS.defs[c.type].name}${mcus.length > 1 ? ' ' + (i + 1) : ''}`));
+    }
     const groups = new Map();
     doc.components.forEach(c => {
       const d = CS.defs[c.type]; if (!d) return;
       d.pins.forEach(p => {
         const node = c.id + '.' + p.id;
-        if (!parent.has(node)) return; // not wired anywhere
+        if (!nets.has(node)) return; // not wired anywhere
         const r = find(node);
         if (!groups.has(r)) groups.set(r, []);
         groups.get(r).push({ c, p });
@@ -1369,7 +1584,7 @@
       const names = members.slice(0, 5).map(m => {
         const d = CS.defs[m.c.type];
         const pretty = m.p.label || m.p.id;
-        return `<b>${esc(m.c.label || d.name)}</b> ${esc(d.mcu ? (m.p.id.startsWith('D') ? 'pin ' + m.p.id.slice(1) : m.p.id) : pretty)}`;
+        return `<b>${esc(m.c.label || mcuNames.get(m.c.id) || d.name)}</b> ${esc(d.mcu ? (m.p.id.startsWith('D') ? 'pin ' + m.p.id.slice(1) : m.p.id) : pretty)}`;
       });
       items.push({ color: (wire && wire.color) || CS.KIND_COLOR[kind] || '#64748b', kind, text: names.join(' ↔ ') + (members.length > 5 ? ` <i>+${members.length - 5} more</i>` : '') });
     }
@@ -1391,35 +1606,37 @@
   function renderPinout() {
     const list = $('#pins-list');
     if (!list || !CS.canvas) return;
-    const comps = CS.canvas.doc.components || [];
     const wires = CS.canvas.doc.wires || [];
-    const mcu = comps.find(c => CS.defs[c.type] && CS.defs[c.type].mcu);
-    if (!mcu) {
+    const mcus = canvasMcus();
+    if (!mcus.length) {
       list.innerHTML = '<div class="insp-empty"><div style="font-size:32px">🔌</div><p><b>No MCU on canvas</b></p><p style="color:var(--ink3);font-size:12.5px;margin-top:8px">Add an Arduino Uno, ESP32, or Raspberry Pi Pico to see pin occupancy.</p></div>';
       return;
     }
-    const def = CS.defs[mcu.type];
-    const usedPins = new Map();
-    wires.forEach(w => {
-      if (w.a.c === mcu.id) usedPins.set(w.a.p, { wireId: w.id, targetComp: CS.canvas.compById(w.b.c), targetPin: w.b.p });
-      if (w.b.c === mcu.id) usedPins.set(w.b.p, { wireId: w.id, targetComp: CS.canvas.compById(w.a.c), targetPin: w.a.p });
-    });
-    const pins = def.pins || [];
-    const occupiedPins = new Set(wires.filter(w => (w.a.c === mcu.id) || (w.b.c === mcu.id)).map(w => w.a.c === mcu.id ? w.a.p : w.b.p));
-    list.innerHTML = `<div class="pinout-summary">${esc(mcu.label || def.name)} · ${occupiedPins.size}/${pins.length} pins used</div>` +
-      pins.map(p => {
+    list.innerHTML = mcus.map((mcu, mi) => {
+      const def = CS.defs[mcu.type];
+      const usedPins = new Map();
+      wires.forEach(w => {
+        if (w.a.c === mcu.id) usedPins.set(w.a.p, { wireId: w.id, targetComp: CS.canvas.compById(w.b.c), targetPin: w.b.p });
+        if (w.b.c === mcu.id) usedPins.set(w.b.p, { wireId: w.id, targetComp: CS.canvas.compById(w.a.c), targetPin: w.a.p });
+      });
+      const pins = def.pins || [];
+      const occupiedPins = new Set(wires.filter(w => (w.a.c === mcu.id) || (w.b.c === mcu.id)).map(w => w.a.c === mcu.id ? w.a.p : w.b.p));
+      const grpHead = mcus.length > 1 ? `<div class="pinout-group-head">${esc(def.name)} ${mi + 1}</div>` : '';
+      return grpHead + `<div class="pinout-summary">${esc(mcu.label || def.name)} · ${occupiedPins.size}/${pins.length} pins used</div>` +
+        pins.map(p => {
         const used = usedPins.get(p.id);
         const kind = p.kind || 'digital';
         const kindLabel = kind.charAt(0).toUpperCase() + kind.slice(1);
         const occClass = used ? 'occupied' : 'free';
         const targetInfo = used ? ` → ${esc(used.targetComp ? (used.targetComp.label || CS.defs[used.targetComp.type]?.name || used.targetComp.type) : '?')}·${used.targetPin || '?'}` : '';
-        return `<div class="pinout-row ${occClass}" data-pin="${esc(p.id)}">
-          <span class="pinout-marker" style="background:${CS.KIND_COLOR?.[kind] || '#64748b'}"></span>
-          <span class="pinout-id">${esc(p.id)}</span>
-          <span class="pinout-kind">${kindLabel}</span>
-          <span class="pinout-status">${used ? `🔗 ${esc(targetInfo)}` : '—'}</span>
-        </div>`;
-      }).join('');
+          return `<div class="pinout-row ${occClass}" data-pin="${esc(p.id)}">
+            <span class="pinout-marker" style="background:${CS.KIND_COLOR?.[kind] || '#64748b'}"></span>
+            <span class="pinout-id">${esc(p.id)}</span>
+            <span class="pinout-kind">${kindLabel}</span>
+            <span class="pinout-status">${used ? `🔗 ${esc(targetInfo)}` : '—'}</span>
+          </div>`;
+        }).join('');
+    }).join('');
   }
   CS.renderPinout = renderPinout;
   CS.bus.on('docChanged', () => { if ($('#dpage-pins')?.classList.contains('active')) renderPinout(); });
@@ -1431,7 +1648,6 @@
     const issues = [];
     const nets = CS.staticNets(doc);
     const mcus = doc.components.filter(c => (CS.defs[c.type] || {}).mcu);
-    if (mcus.length > 1) issues.push({ level: 'warn', text: 'Multiple boards on the bench — only the first one runs the sketch.' });
     if (!mcus.length && doc.components.length > 2) issues.push({ level: 'warn', text: 'No microcontroller — your circuit has no brain. Add a board!' });
     doc.components.forEach(c => {
       const def = CS.defs[c.type]; if (!def) return;
@@ -1440,7 +1656,7 @@
       if (c.type === 'led' && wiredPins.size) {
         const aNet = nets.root(c.id + '.anode'), kNet = nets.root(c.id + '.cathode');
         const hasRes = doc.components.some(r => r.type === 'resistor' && [nets.root(r.id + '.1'), nets.root(r.id + '.2')].some(n => n === aNet || n === kNet));
-        if (!hasRes) issues.push({ level: 'err', comp: c.id, text: `LED${c.label ? ' "' + c.label + '"' : ''} has no series resistor ?" add ~220 ׸ before you fry it!` });
+        if (!hasRes) issues.push({ level: 'err', comp: c.id, text: `LED${c.label ? ' "' + c.label + '"' : ''} has no series resistor — add ~220 Ω before you fry it!` });
       }
       if (['dht22', 'ldr', 'soil', 'gas', 'pir', 'ultrasonic', 'servo', 'relay', 'oled', 'mpu6050', 'ir'].includes(c.type) && !wiredPins.has('VCC') && !wiredPins.has('VDD')) {
         if (wiredPins.size) issues.push({ level: 'err', comp: c.id, text: `${def.name}: VCC isn't wired, so it will stay dark.` });
@@ -1475,6 +1691,29 @@
         });
       }
     });
+    // UART sanity on board-to-board links: TX↔TX is a driver fight, RX↔RX hears nothing
+    if (mcus.length > 1 && CS.uartPinsOf) {
+      const txPins = new Map(), netsTxSeen = new Set();
+      mcus.forEach(m => {
+        const u = CS.uartPinsOf(m.type);
+        if (!u) return;
+        const txNet = nets.root(m.id + '.' + u.tx), rxNet = nets.root(m.id + '.' + u.rx);
+        if (txNet) {
+          if (txPins.has(txNet)) {
+            issues.push({ level: 'err', text: `UART fight — TX of two boards share a net (${txPins.get(txNet)} + ${m.id}). Both talkers, no listener: wire TX → RX.` });
+          } else txPins.set(txNet, m.id);
+        }
+        if (rxNet && txNet && rxNet === txNet) {
+          // TX and RX of the SAME board shorted — that's a legal loopback, fine
+        } else if (rxNet && !netsTxSeen.has(rxNet)) {
+          netsTxSeen.add(rxNet);
+          const anyTx = mcus.some(o => { const uo = CS.uartPinsOf(o.type); return uo && nets.root(o.id + '.' + uo.tx) === rxNet; });
+          const rxBoards = mcus.filter(o => { const uo = CS.uartPinsOf(o.type); return uo && nets.root(o.id + '.' + uo.rx) === rxNet && !(o.id === m.id && rxNet === nets.root(o.id + '.' + uo.tx)); });
+          if (rxBoards.length && !anyTx) issues.push({ level: 'warn', text: 'UART RX pin wired but no board\'s TX drives that net — nobody is talking.' });
+        }
+      });
+    }
+
     // running-state issues
     if (CS.sim && CS.sim.state === 'running' && CS.sim.netInfo) {
       let shorts = 0;
@@ -1489,40 +1728,9 @@
     const box = $('#checker-toast');
     const issues = computeIssues();
     
-    // Update the problems panel (#problems-list) with persistent items
-    const problemsList = $('#problems-list');
-    const problemsPanel = $('#problems-panel');
-    if (problemsList) {
-      if (issues.length) {
-        problemsPanel.classList.remove('hidden');
-        problemsList.innerHTML = issues.map((i, idx) => 
-          `<div class="problem-item ${i.level === 'err' ? 'problem-error' : 'problem-warn'}" ${i.comp ? `data-comp="${i.comp}"` : ''} style="animation-delay:${idx * 0.05}s">
-            <span class="problem-icon">${i.level === 'err' ? '\uD83D\uDD34' : '\uD83D\uDFE1'}</span>
-            <span class="problem-text">${esc(i.text)}</span>
-            <span class="problem-line">L${idx + 1}</span>
-          </div>`
-        ).join('');
-        problemsList.querySelectorAll('[data-comp]').forEach(el => el.addEventListener('click', () => {
-          const c = CS.canvas.compById(el.getAttribute('data-comp'));
-          if (c) {
-            CS.canvas.clearSelection();
-            CS.canvas.selection.add(c.id);
-            if (c._g) c._g.classList.add('selected');
-            CS.bus.emit('selectionChanged');
-            const def = CS.defs[c.type];
-            if (def) {
-              CS.canvas.view.x = -c.x * CS.canvas.view.z + 200;
-              CS.canvas.view.y = -c.y * CS.canvas.view.z + 100;
-              CS.canvas.applyView();
-            }
-          }
-        }));
-      } else {
-        problemsList.innerHTML = '<div class="problem-empty">No problems detected \u2713</div>';
-        problemsPanel.classList.remove('hidden');
-      }
-    }
-    
+    // Problems panel — merged with code diagnostics
+    renderProblemsPanel(issues);
+
     // Transient toast (top 4 issues) — existing behavior
     const show = issues.slice(0, 4);
 
@@ -1537,10 +1745,7 @@
         <span>${esc(i.text)}</span>
       </div>`
     ).join('');
-    box.querySelectorAll('[data-comp]').forEach(el => el.addEventListener('click', () => {
-      const c = CS.canvas.compById(el.getAttribute('data-comp'));
-      if (c) { CS.canvas.clearSelection(); CS.canvas.selection.add(c.id); if (c._g) c._g.classList.add('selected'); CS.bus.emit('selectionChanged'); }
-    }));
+    box.querySelectorAll('[data-comp]').forEach(el => el.addEventListener('click', () => focusComponent(el.getAttribute('data-comp'))));
   }, 500);
 
   /* ---------- serial / plotter / watch ---------- */
@@ -1567,13 +1772,24 @@
       else {
         const out = $('#serial-out');
         if (ts) out.insertAdjacentHTML('beforeend', ts);
+        // board tag chip when several boards print (only on board change)
+        const multi = (CS.sim.boards || []).length > 1;
+        if (multi && ev.board && ev.board !== lastSerialBoard) {
+          const bIdx = Math.max(0, (CS.sim.boards || []).findIndex(b => b.tag === ev.board));
+          const tag = document.createElement('span');
+          tag.className = 'serial-tag';
+          tag.style.color = ['#4ade80', '#22d3ee', '#facc15', '#f87171', '#a78bfa', '#fb923c'][bIdx % 6];
+          tag.textContent = ev.board;
+          out.appendChild(tag);
+        }
+        if (ev.board) lastSerialBoard = ev.board;
         // append text without breaking current line flow
         const span = document.createElement('span');
         span.textContent = ev.text + (ev.nl !== false ? '\n' : '');
         out.appendChild(span);
         out.scrollTop = out.scrollHeight;
-        // plotter data
-        if (plotterOn && ev.nl !== false) {
+        // plotter data (active board only — keeps series aligned)
+        if (plotterOn && ev.nl !== false && (!ev.comp || ev.comp === app.activeBoardId)) {
           const nums = ev.text.split(/[,\s]+/).map(parseFloat).filter(v => !isNaN(v));
           if (nums.length) { plotData.push(nums); if (plotData.length > 400) plotData.shift(); drawPlotter(); }
         }
@@ -1581,7 +1797,7 @@
     }
     lastSerialIdx = evs.length;
   }
-  let lastSerialIdx = 0, plotterOn = false;
+  let lastSerialIdx = 0, plotterOn = false, lastSerialBoard = null;
   function drawPlotter() {
     const cv = $('#plotter');
     const x = cv.getContext('2d');
@@ -1612,7 +1828,7 @@
     const list = $('#watch-list'); if (!list) return;
     list.innerHTML = watchExprs.map((w, i) => {
       let val = '·';
-      try { if (CS.sim && CS.sim.exports && CS.sim.exports.__vars && CS.sim.state !== 'idle') { const v = CS.sim.exports.__vars(w); val = v === undefined ? 'undef' : typeof v === 'object' ? JSON.stringify(v) : String(v); } } catch { val = '?'; }
+      try { const ex = CS.sim && CS.sim.exportsFor ? CS.sim.exportsFor(app.activeBoardId) : (CS.sim && CS.sim.exports); if (ex && ex.__vars && CS.sim.state !== 'idle') { const v = ex.__vars(w); val = v === undefined ? 'undef' : typeof v === 'object' ? JSON.stringify(v) : String(v); } } catch { val = '?'; }
       return `<span class="watch-chip">${esc(w)} = ${esc(String(val).slice(0, 18))}<i data-rm="${i}">✕</i></span>`;
     }).join('');
     list.querySelectorAll('[data-rm]').forEach(el => el.addEventListener('click', () => { watchExprs.splice(+el.getAttribute('data-rm'), 1); refreshWatch(); }));
@@ -1623,20 +1839,25 @@
     if (!pinSel) return;
     const oldVal = pinSel.value;
     pinSel.innerHTML = '';
-    const mcu = CS.canvas && CS.canvas.doc && CS.canvas.doc.components.find(c => (CS.defs[c.type] || {}).mcu);
-    if (!mcu) {
+    const mcus = canvasMcus();
+    if (!mcus.length) {
       pinSel.innerHTML = '<option value="">No microcontroller found</option>';
       return;
     }
-    const def = CS.defs[mcu.type];
-    if (def && def.pins) {
-      const dpins = def.pins.filter(p => p.kind && !p.kind.includes('power') && !p.kind.includes('ground'));
-      dpins.forEach(p => {
-        const isAnalog = p.kind.includes('analog');
-        const mode = isAnalog ? 'analog' : 'digital';
-        pinSel.innerHTML += `<option value="${p.id}|${mode}">${p.id} (${mode})</option>`;
+    mcus.forEach((mcu, mi) => {
+      const def = CS.defs[mcu.type];
+      if (!def || !def.pins) return;
+      const grp = document.createElement('optgroup');
+      grp.label = mcus.length > 1 ? `${def.name} ${mi + 1}` : def.name;
+      def.pins.filter(p => p.kind && !p.kind.includes('power') && !p.kind.includes('ground')).forEach(p => {
+        const mode = p.kind.includes('analog') ? 'analog' : 'digital';
+        const opt = document.createElement('option');
+        opt.value = `${mcu.id}|${p.id}|${mode}`;
+        opt.textContent = `${p.id} (${mode})`;
+        grp.appendChild(opt);
       });
-    }
+      pinSel.appendChild(grp);
+    });
     if (oldVal && pinSel.querySelector(`option[value="${oldVal}"]`)) {
       pinSel.value = oldVal;
     }
@@ -1646,9 +1867,12 @@
   const scope = { channels: [] };
   function scopeAdd() {
     const sel = $('#scope-pin');
-    const [pin, mode] = sel.value.split('|');
-    if (!CS.sim.mcu) return toast('Place a microcontroller first', 'warn');
-    scope.channels.push({ comp: CS.sim.mcu.id, pin, mode, color: ['#4ade80', '#22d3ee', '#f87171', '#facc15', '#a78bfa', '#fb923c'][scope.channels.length % 6] });
+    const [compId, pin, mode] = sel.value.split('|');
+    if (!compId || !pin) return toast('Place a microcontroller first', 'warn');
+    const comp = CS.canvas && CS.canvas.compById(compId);
+    if (!comp) return toast('Board not on the bench anymore', 'warn');
+    const multi = canvasMcus().length > 1;
+    scope.channels.push({ comp: compId, pin, mode, label: multi ? pin + '·' + boardTabName(comp) : pin, color: ['#4ade80', '#22d3ee', '#f87171', '#facc15', '#a78bfa', '#fb923c'][scope.channels.length % 6] });
     renderScopeChips();
   }
   function renderScopeChips() {
@@ -1658,7 +1882,7 @@
     scope.channels.forEach((ch, i) => {
       const b = document.createElement('span');
       b.className = 'scope-chip'; b.style.cssText = `background:${ch.color}22;color:${ch.color};border:1px solid ${ch.color}55;cursor:pointer`;
-      b.textContent = ch.pin + (ch.mode === 'analog' ? ' ~' : '') + ' ✕';
+      b.textContent = (ch.label || ch.pin) + (ch.mode === 'analog' ? ' ~' : '') + ' ✕';
       b.title = 'Remove channel';
       b.addEventListener('click', () => { scope.channels.splice(i, 1); renderScopeChips(); });
       head.insertBefore(b, $('#scope-pin'));
@@ -1679,7 +1903,7 @@
       const y0 = 6 + i * rowH;
       x.strokeStyle = '#22304d'; x.strokeRect(0.5, y0 + 0.5, W - 1, rowH - 4);
       x.fillStyle = ch.color; x.font = '9px monospace';
-      x.fillText(ch.pin, 4, y0 + 10);
+      x.fillText(ch.label || ch.pin, 4, y0 + 10);
       x.strokeStyle = ch.color; x.lineWidth = 1.3; x.globalAlpha = 0.75;
       x.beginPath();
       let started = false;
@@ -1711,9 +1935,11 @@
     CS.sim.scopeChannels = scope.channels.map(c => ({ comp: c.comp, pin: c.pin, mode: c.mode }));
     CS.sim.speed = +$('#sim-speed').value;
     hideErr();
-    const code = CS.editor.getCode();
-    const lang = $('#lang-select').value;
-    const ok = CS.sim.start(code, lang);
+    stashActiveSketch();
+    const sketchMap = {};
+    canvasMcus().forEach(m => { const sk = app.sketches[m.id]; if (sk) sketchMap[m.id] = { code: sk.code || '', lang: sk.lang || 'cpp' }; });
+    CS.sim.debugBoardId = app.activeBoardId || null;
+    const ok = CS.sim.start(sketchMap);
     if (!ok) return;
     api('/api/sim/run', 'POST', {}).catch(() => {});
     $('#sim-run').classList.add('active');
@@ -1737,20 +1963,22 @@
       refreshChecker();
     });
     CS.sim.on('compileError', e => {
+      if (e.comp && e.comp !== app.activeBoardId && app.sketches[e.comp]) switchBoard(e.comp);
       CS.editor.setError(e.line, e.msg);
       toast(`💥 Code error${e.line ? ' near line ' + e.line : ''}: ${e.msg}`, 'err', 6000);
       stopSim();
     });
     CS.sim.on('runtimeError', e => {
+      if (e.comp && e.comp !== app.activeBoardId && app.sketches[e.comp]) switchBoard(e.comp);
       CS.editor.setError(e.line, e.msg);
       $('#sim-run').classList.remove('active');
       toast(`💥 Runtime error at line ${e.line}: ${e.msg}`, 'err', 6000);
       showDock('code');
     });
-    CS.sim.on('serial', CS.debounce(flushSerial, 30));
-    CS.sim.on('clock', CS.debounce(t => { $('#sim-clock').textContent = (t / 1000).toFixed(2) + ' s'; }, 100));
+    CS.sim.on('serial', CS.throttle(flushSerial, 30));
+    CS.sim.on('clock', CS.throttle(t => { $('#sim-clock').textContent = (t / 1000).toFixed(2) + ' s'; }, 100));
     CS.sim.on('dirty', ids => { ids.forEach(id => CS.canvas.updateComp(id)); });
-    CS.sim.on('tick', CS.debounce(() => {
+    CS.sim.on('tick', CS.throttle(() => {
       CS.canvas.updateFlows();
       drawScope();
       refreshWatch();
@@ -1789,6 +2017,7 @@
         <div class="field"><label>Embed in a webpage</label>
           <div class="share-link-row"><input readonly value='<iframe src="${url}?embed=1" width="800" height="520" frameborder="0"></iframe>' id="sh-embed"><button class="btn sm" id="sh-copy2">Copy</button></div></div>
         <div class="prop-row"><label>Publish to community gallery</label><input type="checkbox" id="sh-pub" ${app.project.public ? 'checked' : ''}></div>
+        <div class="prop-row" id="sh-desc-row" style="display:${app.project.public ? '' : 'none'}"><label>Gallery description</label><input type="text" id="sh-desc" maxlength="500" placeholder="What does it do? (shown in the gallery)" value="${esc(app.project.desc || '').replace(/"/g, '&quot;')}"></div>
         <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn ghost sm" id="x-png">🖼 Export PNG</button>
@@ -1801,9 +2030,17 @@
       cp('#sh-url', '#sh-copy'); cp('#sh-embed', '#sh-copy2');
       body.querySelector('#sh-off').addEventListener('click', async () => { await api(`/api/projects/${app.project.id}/share`, 'POST', { off: true }); m.close(); toast('Sharing disabled'); });
       body.querySelector('#sh-pub').addEventListener('change', async e => {
-        await api(`/api/projects/${app.project.id}`, 'PUT', { public: e.target.checked });
-        app.project.public = e.target.checked;
+        const desc = body.querySelector('#sh-desc').value.trim();
+        await api(`/api/projects/${app.project.id}`, 'PUT', { public: e.target.checked, desc });
+        app.project.public = e.target.checked; app.project.desc = desc;
+        body.querySelector('#sh-desc-row').style.display = e.target.checked ? '' : 'none';
         toast(e.target.checked ? 'Published to the community gallery 🌍' : 'Unpublished');
+      });
+      body.querySelector('#sh-desc').addEventListener('change', async e => {
+        if (!app.project.public) return;
+        await api(`/api/projects/${app.project.id}`, 'PUT', { desc: e.target.value.trim() });
+        app.project.desc = e.target.value.trim();
+        toast('Description saved ✓');
       });
       body.querySelector('#x-png').addEventListener('click', exportPng);
       body.querySelector('#x-pdf').addEventListener('click', exportPdf);
@@ -1873,12 +2110,150 @@
   }
 
 
+  /* ---------- command palette (Ctrl/⌘+K) ---------- */
+  let palIdx = 0;
+  function paletteCommands() {
+    const showDock = t => () => {
+      const dock = $('#right-dock');
+      if (dock && !dock.offsetParent && $('#dock-open')) $('#dock-open').click();
+      const b = $(`.dtab[data-dtab="${t}"]`);
+      if (b) b.click();
+    };
+    const addPart = typeId => () => {
+      const def = CS.defs[typeId]; if (!def || !CS.canvas) return;
+      const ctr = CS.canvas.viewportCenter();
+      CS.canvas.addComponent(typeId, ctr.x - def.w / 2, ctr.y - def.h / 2);
+    };
+    const cmds = [
+      { icon: '▶', label: 'Run simulation', hint: 'Ctrl+Enter', fn: () => { if (CS.sim.state === 'idle') runSim(); else if (CS.sim.state === 'paused') CS.sim.resume(); } },
+      { icon: '⏸', label: 'Pause simulation', fn: () => { if (CS.sim.state === 'running') CS.sim.pause(); } },
+      { icon: '⏹', label: 'Stop simulation', fn: () => { if (CS.sim.state !== 'idle') stopSim(); } },
+      { icon: '💾', label: 'Save project', hint: 'Ctrl+S', fn: saveProject },
+      { icon: '🔗', label: 'Share & export…', fn: shareModal },
+      { icon: '📦', label: 'Export sketch (code file)', fn: exportSketch },
+      { icon: '🧾', label: 'Export board as JSON', fn: exportJson },
+      { icon: '🖼', label: 'Export board as PNG', fn: exportPng },
+      { icon: '📄', label: 'Export PDF report', fn: exportPdf },
+      { icon: '🔍', label: 'Search components…', fn: () => { const el = $('#lib-search'); if (el) { el.focus(); el.select(); } } },
+      { icon: '⛶', label: 'Zoom to fit', hint: 'F', fn: () => CS.canvas.zoomFit() },
+      { icon: '💻', label: 'Panel: Code & serial', fn: showDock('code') },
+      { icon: '🕵️', label: 'Panel: Inspector', fn: showDock('inspect') },
+      { icon: '📗', label: 'Panel: Wiring guide', fn: showDock('guide') },
+      { icon: '📈', label: 'Panel: Oscilloscope', fn: showDock('scope') },
+      { icon: '📍', label: 'Panel: Live pin states', fn: showDock('pins') },
+      { icon: '⌨️', label: 'Keyboard shortcuts', hint: '?', fn: shortcutsModal },
+      { icon: '🎛', label: 'Back to dashboard', fn: () => { const b = $('#back-btn'); if (b) b.click(); } }
+    ];
+    ['led', 'resistor', 'button', 'potentiometer', 'ledrgb', 'servo', 'buzzer', 'dht22', 'ultrasonic', 'lcd1602', 'uno', 'esp32']
+      .forEach(id => { const d = CS.defs[id]; if (d) cmds.push({ icon: d.icon || '➕', label: 'Add part: ' + (d.name || id), hint: 'part', fn: addPart(id) }); });
+    return cmds;
+  }
+  function paletteOpen() {
+    const back = $('#palette-back'); if (!back) return;
+    back.classList.add('open');
+    const inp = $('#palette-input');
+    inp.value = ''; palIdx = 0;
+    paletteRender('');
+    setTimeout(() => inp.focus(), 30);
+  }
+  function paletteIsOpen() { const back = $('#palette-back'); return !!(back && back.classList.contains('open')); }
+  function paletteClose() { const back = $('#palette-back'); if (back) back.classList.remove('open'); }
+  function paletteRender(q) {
+    const list = $('#palette-list'); if (!list) return;
+    q = (q || '').trim().toLowerCase();
+    const cmds = paletteCommands().filter(c => !q || c.label.toLowerCase().includes(q));
+    list._cmds = cmds;
+    if (palIdx >= cmds.length) palIdx = 0;
+    list.innerHTML = cmds.length ? cmds.map((c, i) =>
+      `<button type="button" class="pal-item${i === palIdx ? ' active' : ''}" data-i="${i}" role="option"><span class="pal-ico">${c.icon}</span><span class="pal-label">${esc(c.label)}</span>${c.hint ? `<span class="pal-hint kbd">${esc(c.hint)}</span>` : ''}</button>`
+    ).join('') : '<div class="pal-empty">No matching commands</div>';
+    const act = list.querySelector('.pal-item.active');
+    if (act) act.scrollIntoView({ block: 'nearest' });
+  }
+  function bindPalette() {
+    const back = $('#palette-back'); if (!back) return;
+    const inp = $('#palette-input'), list = $('#palette-list');
+    back.addEventListener('mousedown', e => { if (e.target === back) paletteClose(); });
+    inp.addEventListener('input', () => { palIdx = 0; paletteRender(inp.value); });
+    inp.addEventListener('keydown', e => {
+      const n = (list._cmds || []).length;
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (n) { palIdx = (palIdx + 1) % n; paletteRender(inp.value); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (n) { palIdx = (palIdx - 1 + n) % n; paletteRender(inp.value); } }
+      else if (e.key === 'Enter') { e.preventDefault(); const c = (list._cmds || [])[palIdx]; paletteClose(); if (c) c.fn(); }
+      else if (e.key === 'Escape') { e.preventDefault(); paletteClose(); }
+    });
+    list.addEventListener('mousemove', e => {
+      const b = e.target.closest('.pal-item');
+      if (b && +b.dataset.i !== palIdx) { palIdx = +b.dataset.i; paletteRender(inp.value); }
+    });
+    list.addEventListener('click', e => {
+      const b = e.target.closest('.pal-item'); if (!b) return;
+      const c = (list._cmds || [])[+b.dataset.i];
+      paletteClose(); if (c) c.fn();
+    });
+  }
+
+  /* ---------- undoable soft-delete (dashboard cards) ---------- */
+  const pendingDeletes = new Map();
+  function deleteProjectUndoable(p) {
+    if (pendingDeletes.has(p.id)) return;
+    const timer = setTimeout(async () => {
+      pendingDeletes.delete(p.id);
+      try { await api(`/api/projects/${p.id}`, 'DELETE'); }
+      catch (err) { toast('Delete failed: ' + err.message, 'err'); loadProjects(); }
+    }, 6000);
+    pendingDeletes.set(p.id, timer);
+    loadProjects();
+    undoToast(`Deleting “${p.name}”…`, () => {
+      clearTimeout(timer);
+      pendingDeletes.delete(p.id);
+      loadProjects();
+      toast('Restored ✓', 'ok', 1800);
+    });
+  }
+  function undoToast(msg, onUndo, ms = 5900) {
+    const root = $('#toast-root'); if (!root) return;
+    const t = document.createElement('div');
+    t.className = 'toast warn undo-toast';
+    const span = document.createElement('span');
+    span.textContent = '🗑 ' + msg;
+    const btn = document.createElement('button');
+    btn.className = 'undo-btn';
+    btn.textContent = 'Undo';
+    btn.addEventListener('click', () => { kill(); onUndo(); });
+    t.append(span, btn);
+    root.appendChild(t);
+    let killed = false;
+    function kill() { if (killed) return; killed = true; t.classList.add('out'); setTimeout(() => t.remove(), 260); }
+    setTimeout(kill, ms);
+    return t;
+  }
+
+  /* ---------- one-time dismissible tip for touch devices ---------- */
+  function maybeTouchBanner() {
+    try { if (sessionStorage.getItem('ct_touch_note')) return; } catch {}
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (!(coarse && window.innerWidth < 1024)) return;
+    try { sessionStorage.setItem('ct_touch_note', '1'); } catch {}
+    const b = document.createElement('div');
+    b.className = 'touch-note';
+    const txt = document.createElement('span');
+    txt.innerHTML = '📱 <b>Tip:</b> two fingers pan the canvas, pinch zooms. CircuitTecture shines brightest on a desktop or laptop.';
+    const x = document.createElement('button');
+    x.className = 'touch-note-x'; x.textContent = '✕'; x.setAttribute('aria-label', 'Dismiss tip');
+    x.addEventListener('click', () => b.remove());
+    b.append(txt, x);
+    document.body.appendChild(b);
+    requestAnimationFrame(() => b.classList.add('show'));
+    setTimeout(() => { if (b.parentNode) { b.classList.remove('show'); setTimeout(() => b.remove(), 400); } }, 11000);
+  }
+
   /* ---------- shortcuts ---------- */
   function shortcutsModal() {
     modal({
       title: '⌨️ Keyboard shortcuts', wide: true,
       body: `<div class="kbd-grid">
-        ${[['Ctrl+Enter', 'Run simulation'], ['Ctrl+S', 'Save project'], ['Ctrl+Z', 'Undo'], ['Ctrl+Shift+Z / Ctrl+Y', 'Redo'], ['Ctrl+C / X / V', 'Copy / cut / paste'], ['Ctrl+D', 'Duplicate selection'], ['Ctrl+A', 'Select all'], ['R', 'Rotate 90°'], ['Del / Backspace', 'Delete selection'], ['Arrow keys', 'Nudge (Shift = ×10)'], ['Space + drag', 'Pan canvas'], ['Scroll', 'Zoom'], ['F', 'Fit circuit to screen'], ['+ / −', 'Zoom in / out'], ['Esc', 'Deselect / cancel wire'], ['Click/drag pin → pin', 'Draw a wire (click again to finish)'], ['Right-click canvas', 'Canvas/part/wire menu'], ['Probe button + pin', 'Read live voltage/state'], ['Click gutter', 'Toggle breakpoint'], ['Ctrl+Space', 'Autocomplete'], ['/', 'Focus search (dashboard)'], ['?', 'This cheat-sheet']].map(([k, d]) => `<div class="kbd-row"><span>${d}</span><span class="kbd">${k}</span></div>`).join('')}
+        ${[['Ctrl+Enter', 'Run simulation'], ['Ctrl+S', 'Save project'], ['Ctrl+K / ⌘K', 'Command palette'], ['Ctrl+Z', 'Undo'], ['Ctrl+Shift+Z / Ctrl+Y', 'Redo'], ['Ctrl+C / X / V', 'Copy / cut / paste'], ['Ctrl+D', 'Duplicate selection'], ['Ctrl+A', 'Select all'], ['R', 'Rotate 90°'], ['Del / Backspace', 'Delete selection'], ['Arrow keys', 'Nudge (Shift = ×10)'], ['Scroll / two-finger drag', 'Pan canvas'], ['Ctrl + Scroll / pinch', 'Zoom'], ['Shift + Scroll', 'Pan sideways'], ['Space + drag', 'Pan canvas'], ['F', 'Fit circuit to screen'], ['+ / −', 'Zoom in / out'], ['Esc', 'Deselect / cancel wire'], ['Click/drag pin → pin', 'Draw a wire (click again to finish)'], ['Right-click canvas', 'Canvas/part/wire menu'], ['Probe button + pin', 'Read live voltage/state'], ['Click gutter', 'Toggle breakpoint'], ['Ctrl+Space', 'Autocomplete'], ['/', 'Focus search (dashboard)'], ['?', 'This cheat-sheet']].map(([k, d]) => `<div class="kbd-row"><span>${d}</span><span class="kbd">${k}</span></div>`).join('')}
       </div>`
     });
   }
@@ -1889,8 +2264,13 @@
     const doIt = () => {
       const b = t.build();
       CS.canvas.setDoc({ components: b.components, wires: b.wires });
-      CS.editor.setCode(b.code);
-      $('#lang-select').value = t.lang; CS.editor.setLang(t.lang);
+      const tmcus = (b.components || []).filter(c => (CS.defs[c.type] || {}).mcu);
+      app.sketches = {};
+      app.archivedSketches = {};
+      tmcus.forEach((m, i) => { app.sketches[m.id] = { code: i === 0 ? b.code : starterSketch((CS.defs[m.type] || {}).name || 'Sketch', t.lang || 'cpp'), lang: t.lang || 'cpp', breakpoints: [] }; });
+      app.activeBoardId = tmcus.length ? tmcus[0].id : null;
+      loadActiveSketch();
+      renderBoardTabs(tmcus);
       if (app.project) { app.project.board = t.board; app.project.lang = t.lang; }
       markDirty(); refreshGuide(); refreshChecker(); updateCanvasHint(); CS.canvas.zoomFit();
       toast(`${t.icon} ${t.name} loaded`);
@@ -1898,16 +2278,6 @@
     if (CS.canvas.doc.components.length && !silent) {
       if (confirm('Replace the current bench with this template?')) doIt();
     } else doIt();
-  };
-  CS.app.insertGenerated = function (plan) {
-    const doIt = () => {
-      CS.canvas.setDoc({ components: plan.components, wires: plan.wires });
-      CS.editor.setCode(plan.code);
-      if ($('#lang-select').value !== 'cpp') { $('#lang-select').value = 'cpp'; CS.editor.setLang('cpp'); }
-      markDirty(); refreshGuide(); refreshChecker(); updateCanvasHint(); CS.canvas.zoomFit();
-    };
-    if (CS.canvas.doc.components.length) { if (confirm('Replace the current bench with the generated circuit?')) doIt(); }
-    else doIt();
   };
   CS.app.runSim = runSim;
 
@@ -1936,15 +2306,17 @@
     $('#lang-select').addEventListener('change', () => {
       CS.editor.setLang($('#lang-select').value);
       if (app.project) { app.project.lang = $('#lang-select').value; markDirty(); }
+      if (app.activeBoardId && app.sketches[app.activeBoardId]) app.sketches[app.activeBoardId].lang = $('#lang-select').value;
+      renderBoardTabs();
     });
     // templates dropdown
     const ts = $('#template-select');
     ts.innerHTML = `<option value="">✨ Examples…</option>` + CS.templates.map(t => `<option value="${t.id}">${t.icon} ${t.name} (${t.level})</option>`).join('');
     ts.addEventListener('change', () => { if (ts.value) { app.applyTemplate(ts.value); ts.value = ''; } });
     $('#export-code-btn').addEventListener('click', exportSketch);
-    $('#editor-theme').addEventListener('change', () => { const v = $('#editor-theme').value; const pref = v === 'system' ? 'system' : (v === 'vs' ? 'light' : 'dark'); localStorage.setItem('ct-theme', pref); applyThemePref(pref); });
-    $('#editor-font').addEventListener('change', () => CS.editor.setFontSize && CS.editor.setFontSize(+$('#editor-font').value));
-    $('#problems-clear').addEventListener('click', () => { CS.editor.setDiagnostics && CS.editor.setDiagnostics([]); renderProblems([]); });
+    $('#editor-theme').addEventListener('change', () => applyEditorTheme($('#editor-theme').value));
+    $('#editor-font').addEventListener('change', () => { CS.editor.setFontSize && CS.editor.setFontSize(+$('#editor-font').value); try { localStorage.setItem('ct_editor_font', $('#editor-font').value); } catch {} });
+    $('#problems-clear').addEventListener('click', () => { diagProblems = []; if (CS.editor && CS.editor.setDiagnostics) CS.editor.setDiagnostics([]); renderProblemsPanel([]); });
     // library
     $('#lib-search').addEventListener('input', debounce(() => buildLibrary(false), 200));
     $('#lib-collapse').addEventListener('click', () => { $('#lib-panel').classList.add('collapsed'); $('#lib-open').classList.remove('hidden'); });
@@ -1980,10 +2352,10 @@
     bindMiniMap();
     $('#hint-load-example').addEventListener('click', () => app.applyTemplate('blink', true));
     // serial
-    $('#serial-clear').addEventListener('click', () => { $('#serial-out').innerHTML = ''; if (CS.sim) { CS.sim.serialEvents = []; lastSerialIdx = 0; } });
+    $('#serial-clear').addEventListener('click', () => { $('#serial-out').innerHTML = ''; if (CS.sim) { CS.sim.serialEvents = []; lastSerialIdx = 0; lastSerialBoard = null; } });
     $('#serial-send').addEventListener('click', sendSerial);
     $('#serial-in').addEventListener('keydown', e => { if (e.key === 'Enter') sendSerial(); });
-    function sendSerial() { const v = $('#serial-in').value; if (!v) return; if (CS.sim) CS.sim.serialRx += v + '\n'; serialWrite('→ ' + v, true); $('#serial-in').value = ''; }
+    function sendSerial() { const v = $('#serial-in').value; if (!v) return; const b = CS.sim && CS.sim.rxFor(app.activeBoardId); if (b) b.serialRx += v + '\n'; else if (CS.sim) { CS.sim.serialRx = (CS.sim.serialRx || '') + v + '\n'; } serialWrite('→ ' + v, true); $('#serial-in').value = ''; }
     $('#plotter-toggle').addEventListener('click', function () {
       plotterOn = !plotterOn;
       $('#plotter').classList.toggle('hidden', !plotterOn);
@@ -2000,12 +2372,8 @@
     $('#scope-clear').addEventListener('click', () => { scope.channels.length = 0; renderScopeChips(); drawScope(); });
     // top buttons
     $('#share-btn').addEventListener('click', shareModal);
-    const scBtn = $('#shortcuts-btn'); if (scBtn) scBtn.addEventListener('click', shortcutsModal);
-    const thBtn = $('#theme-btn'); if (thBtn) thBtn.addEventListener('click', toggleTheme);
     $('#project-menu-btn').addEventListener('click', e => {
       menu(e.clientX, e.clientY, [
-        { icon: '📸', label: 'Save version snapshot', fn: () => saveProject(true) },
-        { icon: '🕘', label: 'Version history', fn: versionHistory },
         { icon: '✏️', label: 'Rename / organize', fn: () => app.project && renameModal(app.project) },
         { icon: '⧉', label: 'Duplicate project', fn: async () => { try { const r = await api(`/api/projects/${app.project.id}/duplicate`, 'POST', {}); openProject(r.project.id); } catch (err) { toast(err.message, 'err'); } } },
         { icon: '📖', label: 'How it\'s wired', fn: () => showDock('guide') },
@@ -2020,6 +2388,8 @@
       if (e.key === '?' && !e.target.matches('input,textarea')) shortcutsModal();
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); CS.sim.state === 'idle' ? runSim() : stopSim(); }
       if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveProject(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); paletteOpen(); }
+      if (e.key === 'Escape' && paletteIsOpen()) { e.preventDefault(); paletteClose(); }
     });
     window.addEventListener('resize', CS.debounce(() => { drawScope(); drawPlotter(); }, 200));
     window.addEventListener('beforeunload', e => { if (app.dirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -2045,40 +2415,6 @@
       }
     });
 
-    // Problems panel clear button should just hide it temporarily
-    const pc = $('#problems-clear');
-    if (pc) {
-      pc.addEventListener('click', () => {
-        $('#problems-panel').classList.add('hidden');
-      });
-    }
-  }
-
-  async function versionHistory() {
-    const body = document.createElement('div');
-    body.innerHTML = '<div class="skel skel-row"></div><div class="skel skel-row"></div>';
-    const m = modal({ title: '🕘 Version history', body, wide: true });
-    try {
-      const { project } = await api(`/api/projects/${app.project.id}`);
-      const vers = project.versions || [];
-      body.innerHTML = vers.length ? '' : `<div class="empty-state" style="padding:30px"><span class="e-icon">📸</span><h3>No snapshots yet</h3><p>Use "Save version snapshot" from the ⋯ menu to freeze milestone states you can restore later.</p></div>`;
-      vers.forEach(v => {
-        const row = document.createElement('div');
-        row.className = 'ver-row';
-        row.innerHTML = `<span><b>${esc(v.name)}</b> <small>· ${new Date(v.ts).toLocaleString()}</small></span><button class="btn ghost sm">Restore</button>`;
-        row.querySelector('button').addEventListener('click', async () => {
-          if (!confirm('Restore this snapshot? Your current state is autosaved as a new snapshot first.')) return;
-          await api(`/api/projects/${app.project.id}`, 'PUT', { saveVersion: 'auto-backup before restore' });
-          await api(`/api/projects/${app.project.id}`, 'PUT', { restoreVersion: v.id });
-          const { project: p2 } = await api(`/api/projects/${app.project.id}`);
-          CS.canvas.setDoc({ components: p2.components, wires: p2.wires });
-          CS.editor.setCode(p2.code);
-          m.close(); toast('Restored ⏪');
-          refreshGuide(); refreshChecker(); updateCanvasHint();
-        });
-        body.appendChild(row);
-      });
-    } catch (e) { body.innerHTML = `<p class="form-err">${esc(e.message)}</p>`; }
   }
 
   function accountSettingsModal() {
@@ -2103,7 +2439,308 @@
     body.querySelector('#acct-email-save').addEventListener('click', async () => { try { const r = await api('/api/me', 'PUT', { email: body.querySelector('#acct-email').value, currentPass: body.querySelector('#acct-cur').value }); app.user = r.user; toast('Email updated'); } catch(e){ err(e.message); } });
     body.querySelector('#acct-pass-save').addEventListener('click', async () => { if (body.querySelector('#acct-pass1').value !== body.querySelector('#acct-pass2').value) return err('Passwords do not match.'); try { await api('/api/me/password', 'POST', { currentPass: body.querySelector('#acct-cur').value, newPass: body.querySelector('#acct-pass1').value }); toast('Password updated'); } catch(e){ err(e.message); } });
     body.querySelector('#acct-logout-all').addEventListener('click', async () => { try { await api('/api/me/logout-all', 'POST', {}); toast('Other sessions logged out'); } catch(e){ err(e.message); } });
-    body.querySelector('#acct-delete').addEventListener('click', async () => { const pass = prompt('Type your current password to permanently delete your account and projects.'); if (!pass) return; if (!confirm('This permanently deletes your account and projects. Continue?')) return; try { await api('/api/me', 'DELETE', { currentPass: pass }); location.reload(); } catch(e){ err(e.message); } });
+    const delBtn = body.querySelector('#acct-delete');
+    delBtn.addEventListener('click', () => {
+      const zone = document.createElement('div');
+      zone.className = 'acct-delete-zone';
+      zone.innerHTML = `
+        <div class="form-note" style="color:#f87171;font-weight:700;margin-bottom:8px">⚠️ This permanently deletes your account and all projects. There is no undo.</div>
+        <div class="field"><input id="acct-del-pass" type="password" placeholder="Type your password to confirm" autocomplete="current-password"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn danger" style="flex:1" id="acct-del-go">Delete permanently</button>
+          <button class="btn ghost" id="acct-del-cancel">Cancel</button>
+        </div>`;
+      delBtn.replaceWith(zone);
+      const go = async () => {
+        const pass = zone.querySelector('#acct-del-pass').value;
+        if (!pass) return err('Type your password to confirm deletion.');
+        try { await api('/api/me', 'DELETE', { currentPass: pass }); toast('Account deleted'); location.reload(); } catch (e) { err(e.message); }
+      };
+      zone.querySelector('#acct-del-go').addEventListener('click', go);
+      zone.querySelector('#acct-del-cancel').addEventListener('click', () => zone.replaceWith(delBtn));
+      zone.querySelector('#acct-del-pass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+      zone.querySelector('#acct-del-pass').focus();
+    });
+  }
+
+  /* ================= classroom ================= */
+  function isTeacherSide() { return !!(app.user && (app.user.role === 'teacher' || app.user.role === 'admin')); }
+
+  function classChip(c) {
+    return `<span class="class-chip">${esc(c.name)} <i>· ${esc(c.teacher || '')}${c.members != null ? ` · 👥 ${c.members}` : ''}</i> <b title="Leave class" data-act="leave" data-cls="${c.id}">✕</b></span>`;
+  }
+
+  function assignRow(a, teacher) {
+    const due = a.due ? new Date(a.due) : null;
+    const overdue = due && due.getTime() < Date.now();
+    const subM = a.submission;
+    let status;
+    if (teacher) status = `<span class="chip">📥 ${a.count} submission${a.count === 1 ? '' : 's'}</span>`;
+    else if (subM && subM.grade != null) status = `<span class="chip good">⭐ ${subM.grade}%</span>`;
+    else if (subM) status = `<span class="chip good">✓ submitted</span>`;
+    else if (overdue) status = `<span class="chip bad">overdue</span>`;
+    else status = `<span class="chip">open</span>`;
+    return `
+      <div class="assign-row" data-asn="${a.id}">
+        <div class="ar-main">
+          <div class="ar-title">${esc(a.title)} ${a.className ? `<span class="chip cls">${esc(a.className)}</span>` : ''}</div>
+          ${a.brief ? `<div class="ar-brief">${esc(a.brief).slice(0, 220)}</div>` : ''}
+          <div class="ar-meta">${due ? `📅 due ${due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}${overdue && !teacher && !subM ? ' · late!' : ''}` : 'no due date'} · ${esc((a.owner && a.owner.name) || 'teacher')}</div>
+          ${!teacher && subM && subM.grade != null && subM.feedback ? `<div class="ar-feedback">💬 ${esc(subM.feedback)}</div>` : ''}
+          ${!teacher && subM ? `<div class="ar-meta">submitted ${CS.fmtTime(subM.submittedAt)}</div>` : ''}
+        </div>
+        <div class="ar-side">
+          ${status}
+          ${teacher
+            ? `<button class="btn ghost sm" data-act="gradebook" data-asn="${a.id}" data-title="${esc(a.title)}">Gradebook ▸</button><button class="btn ghost xs danger" data-act="asn-del" data-asn="${a.id}" title="Delete assignment">✕</button>`
+            : `<button class="btn ${subM ? 'ghost' : 'primary'} sm" data-act="submit" data-asn="${a.id}" data-title="${esc(a.title)}">${subM ? '↻ Resubmit' : 'Submit project'}</button>`}
+        </div>
+      </div>`;
+  }
+
+  async function renderClassroom(grid) {
+    grid.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'classroom';
+    grid.appendChild(wrap);
+    let classes = [], assignments = [];
+    try {
+      const [cr, ar] = await Promise.all([api('/api/classes'), api('/api/assignments')]);
+      classes = cr.classes || [];
+      assignments = ar.assignments || [];
+    } catch (e) {
+      wrap.innerHTML = `<div class="empty-state"><span class="e-icon">😵</span><h3>Couldn't load classroom</h3><p>${esc(e.message)}</p></div>`;
+      return;
+    }
+    const teacher = isTeacherSide();
+
+    if (teacher) {
+      wrap.innerHTML = `
+        <div class="cls-head">
+          <div><h3>🎓 Classroom</h3><p>Create classes, share the invite code, post assignments, and grade circuit submissions.</p></div>
+          <button class="btn primary" id="cls-new">＋ New class</button>
+        </div>
+        ${classes.length ? `<div class="cls-grid">${classes.map(c => `
+          <div class="class-card" data-cls="${c.id}">
+            <div class="cc-title">${esc(c.name)}</div>
+            <div class="cc-code-row">Invite code <button class="code-pill" data-act="copy" data-code="${c.code}" title="Click to copy">${c.code} ⧉</button> <span class="cc-members">👥 ${c.members}</span></div>
+            <div class="cc-actions">
+              <button class="btn ghost xs" data-act="assign" data-cls="${c.id}" data-name="${esc(c.name)}">＋ Assignment</button>
+              <button class="btn ghost xs" data-act="roster" data-cls="${c.id}" data-name="${esc(c.name)}">Roster</button>
+              <button class="btn ghost xs danger" data-act="cls-del" data-cls="${c.id}" title="Delete class">Delete</button>
+            </div>
+          </div>`).join('')}</div>`
+        : `<div class="empty-state"><span class="e-icon">🏫</span><h3>No classes yet</h3><p>Create your first class and share the invite code with your students.</p></div>`}
+        <div class="cls-sub">Assignments <span class="cls-count">${assignments.length}</span></div>
+        ${assignments.length ? `<div class="assign-list">${assignments.map(a => assignRow(a, true)).join('')}</div>`
+        : `<p class="cls-none">No assignments posted yet — pick a class and press “＋ Assignment”.</p>`}`;
+    } else {
+      wrap.innerHTML = `
+        <div class="cls-head">
+          <div><h3>🎓 Classroom</h3><p>Join your class with the invite code from your teacher, then submit your circuit projects here.</p></div>
+          <div class="cls-join"><input id="cls-code" placeholder="Invite code (e.g. K7Q2M9)" maxlength="12" autocomplete="off" spellcheck="false"><button class="btn primary" id="cls-join-btn">Join</button></div>
+        </div>
+        ${classes.length ? `<div class="cls-chips">${classes.map(classChip).join('')}</div>` : ''}
+        <div class="cls-sub">Assignments <span class="cls-count">${assignments.length}</span></div>
+        ${assignments.length ? `<div class="assign-list">${assignments.map(a => assignRow(a, false)).join('')}</div>`
+        : `<div class="empty-state"><span class="e-icon">📚</span><h3>${classes.length ? 'No assignments yet' : 'Not in a class yet'}</h3><p>${classes.length ? 'Your teacher hasn\'t posted anything. Build something cool in the meantime!' : 'Ask your teacher for the 6-letter invite code and join above.'}</p></div>`}`;
+    }
+
+    const nb = wrap.querySelector('#cls-new');
+    if (nb) nb.addEventListener('click', () => newClassModal());
+    const jb = wrap.querySelector('#cls-join-btn');
+    if (jb) {
+      const join = async () => {
+        const code = (wrap.querySelector('#cls-code').value || '').trim();
+        if (!code) return toast('Enter the invite code first', 'warn');
+        try {
+          const r = await api('/api/classes/join', 'POST', { code });
+          toast(`Joined ${r.class.name} 🎉`);
+          loadProjects();
+        } catch (e) { toast(e.message, 'err'); }
+      };
+      jb.addEventListener('click', join);
+      wrap.querySelector('#cls-code').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
+    }
+
+    wrap.addEventListener('click', async e => {
+      const el = e.target.closest('[data-act]');
+      if (!el) return;
+      const act = el.getAttribute('data-act');
+      const clsId = el.getAttribute('data-cls'), asnId = el.getAttribute('data-asn');
+      try {
+        if (act === 'copy') {
+          const code = el.getAttribute('data-code');
+          try { await navigator.clipboard.writeText(code); } catch { }
+          toast(`Code ${code} copied — share it with your students 📋`);
+        } else if (act === 'assign') newAssignmentModal(clsId, el.getAttribute('data-name') || 'class');
+        else if (act === 'roster') rosterModal(clsId, el.getAttribute('data-name') || 'Class');
+        else if (act === 'cls-del') {
+          if (!confirm('Delete this class, its memberships and all its assignments? Students keep their projects.')) return;
+          await api('/api/classes/' + clsId, 'DELETE', {});
+          toast('Class deleted'); loadProjects();
+        } else if (act === 'asn-del') {
+          if (!confirm('Delete this assignment and its submissions?')) return;
+          await api('/api/assignments/' + asnId, 'DELETE', {});
+          toast('Assignment deleted'); loadProjects();
+        } else if (act === 'gradebook') gradebookModal(asnId, el.getAttribute('data-title') || 'Assignment');
+        else if (act === 'submit') submitModal(asnId, el.getAttribute('data-title') || 'Assignment');
+        else if (act === 'leave') {
+          if (!confirm('Leave this class? Your submissions stay graded, but new assignments disappear.')) return;
+          await api(`/api/classes/${clsId}/leave`, 'POST', {});
+          toast('Left class'); loadProjects();
+        }
+      } catch (err) { toast(err.message, 'err'); }
+    });
+  }
+
+  function newClassModal() {
+    const body = document.createElement('div');
+    body.innerHTML = `<div class="field"><label>Class name</label><input id="nc-name" placeholder="e.g. Robotics 101 — Period 3" maxlength="80"></div>
+      <p class="form-note">You'll get a 6-letter invite code to share with your students.</p>
+      <button class="btn primary block lg" id="nc-go" style="margin-top:10px">Create class 🏫</button>`;
+    const m = modal({ title: '🏫 New class', body });
+    const go = async () => {
+      try {
+        const r = await api('/api/classes', 'POST', { name: body.querySelector('#nc-name').value.trim() });
+        m.close();
+        toast(`Class created — invite code ${r.class.code} 📋`);
+        loadProjects();
+      } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelector('#nc-go').addEventListener('click', go);
+    body.querySelector('#nc-name').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    body.querySelector('#nc-name').focus();
+  }
+
+  function rosterModal(clsId, name) {
+    const body = document.createElement('div');
+    body.innerHTML = '<p style="color:var(--ink3)">Loading roster…</p>';
+    modal({ title: '👥 ' + name + ' — roster', body });
+    api('/api/classes/' + clsId).then(({ roster }) => {
+      body.innerHTML = roster.length
+        ? `<div class="roster-list">${roster.map(r => `<div class="roster-row"><span class="a-face">${esc(r.avatar || '🧑‍🎓')}</span><div><b>${esc(r.name)}</b><div class="ar-meta">${esc(r.email)} · joined ${CS.fmtTime(r.joinedAt)}</div></div><button class="btn ghost xs danger" style="margin-left:auto" data-rm="${r.id}" title="Remove from class">Remove</button></div>`).join('')}</div>`
+        : '<div class="empty-state"><span class="e-icon">🪑</span><h3>No students yet</h3><p>Share the invite code — students join from their Classroom tab.</p></div>';
+      body.querySelectorAll('[data-rm]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('Remove this student from the class? Their submissions stay graded.')) return;
+        try { await api(`/api/classes/${clsId}/members/${btn.getAttribute('data-rm')}`, 'DELETE', {}); toast('Student removed'); btn.closest('.roster-row').remove(); }
+        catch (e) { toast(e.message, 'err'); }
+      }));
+    }).catch(e => { body.innerHTML = `<p class="form-err">${esc(e.message)}</p>`; });
+  }
+
+  function newAssignmentModal(clsId, clsName) {
+    const body = document.createElement('div');
+    const dateStr = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+    body.innerHTML = `
+      <div class="field"><label>Title</label><input id="na-title" placeholder="e.g. Blink an LED with a pushbutton" maxlength="100"></div>
+      <div class="field"><label>Brief (what should the circuit + code do?)</label><textarea id="na-brief" rows="3" maxlength="1000" placeholder="Wire a pushbutton to D2 and an LED (with resistor!) to D13. The LED should toggle on each press."></textarea></div>
+      <div class="field"><label>Due date</label><input id="na-due" type="date" value="${dateStr}"></div>
+      <p class="form-note">Posted to <b>${esc(clsName)}</b> — everyone in the class sees it instantly.</p>
+      <button class="btn primary block lg" id="na-go" style="margin-top:10px">Post assignment 📮</button>`;
+    const m = modal({ title: '📮 New assignment', body });
+    const go = async () => {
+      const title = body.querySelector('#na-title').value.trim();
+      if (!title) return toast('Give it a title first', 'warn');
+      try {
+        await api('/api/assignments', 'POST', {
+          classId: clsId, title,
+          brief: body.querySelector('#na-brief').value.trim(),
+          due: body.querySelector('#na-due').value ? new Date(body.querySelector('#na-due').value + 'T23:59:00').getTime() : null
+        });
+        m.close(); toast('Assignment posted 📮'); loadProjects();
+      } catch (e) { toast(e.message, 'err'); }
+    };
+    body.querySelector('#na-go').addEventListener('click', go);
+    body.querySelector('#na-title').focus();
+  }
+
+  async function gradebookModal(asnId, title) {
+    const body = document.createElement('div');
+    body.innerHTML = '<p style="color:var(--ink3)">Loading submissions…</p>';
+    modal({ title: '📥 ' + title + ' — gradebook', body, wide: true });
+    let data;
+    try { data = await api(`/api/assignments/${asnId}/submissions`); }
+    catch (e) { body.innerHTML = `<p class="form-err">${esc(e.message)}</p>`; return; }
+    const { submissions, roster } = data;
+    const byUser = new Map(submissions.map(sv => [sv.userId, sv]));
+    const rows = (roster.length ? roster.map(r => ({ user: r, sv: byUser.get(r.id) })) : submissions.map(sv => ({ user: sv.student, sv })));
+    if (!rows.length) {
+      body.innerHTML = '<div class="empty-state"><span class="e-icon">📭</span><h3>No submissions yet</h3><p>Once students submit, their projects land here for grading.</p></div>';
+      return;
+    }
+    body.innerHTML = `<div class="grade-table">
+      <div class="gt-row gt-head"><span>Student</span><span>Submission</span><span>Grade %</span><span>Feedback</span><span></span></div>
+      ${rows.map(({ user, sv }) => `
+        <div class="gt-row ${sv ? '' : 'gt-missing'}" data-user="${user.id}">
+          <span class="gt-student"><span class="a-face">${esc(user.avatar || '🧑‍🎓')}</span> ${esc(user.name)}</span>
+          <span>${sv
+            ? `<a href="/editor?id=${sv.projectId}" class="gt-proj" title="Open ${esc(sv.project ? sv.project.name : 'project')}">🧩 ${esc((sv.project && sv.project.name) || 'project')} ↗</a><div class="ar-meta">${CS.fmtTime(sv.submittedAt)}</div>`
+            : '<i style="color:var(--ink3)">— nothing yet —</i>'}</span>
+          <span><input class="gt-grade" type="number" min="0" max="100" placeholder="–" ${sv && sv.grade != null ? `value="${sv.grade}"` : ''} ${sv ? '' : 'disabled'}></span>
+          <span><input class="gt-fb" type="text" maxlength="1000" placeholder="Nice wiring! Try…" ${sv && sv.feedback ? `value="${esc(sv.feedback).replace(/"/g, '&quot;')}"` : ''} ${sv ? '' : 'disabled'}></span>
+          <span>${sv ? `<button class="btn ghost sm" data-save="${user.id}">Save</button>` : ''}</span>
+        </div>`).join('')}
+    </div>`;
+    body.insertAdjacentHTML('beforeend', '<div style="margin-top:14px;display:flex;justify-content:flex-end"><button class="btn ghost sm" id="gb-csv">⬇ Export gradebook (CSV)</button></div>');
+    body.querySelector('#gb-csv').addEventListener('click', () => {
+      const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const lines = [['Student', 'Status', 'Grade %', 'Feedback', 'Submitted', 'Project'].map(q).join(',')];
+      rows.forEach(({ user, sv }) => {
+        lines.push([
+          user.name,
+          sv ? 'submitted' : 'missing',
+          sv && sv.grade != null ? sv.grade : '',
+          sv ? (sv.feedback || '') : '',
+          sv ? new Date(sv.submittedAt).toLocaleString() : '',
+          sv ? ((sv.project && sv.project.name) || 'project') : ''
+        ].map(q).join(','));
+      });
+      const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (title || 'gradebook').replace(/[^\w\-.]+/g, '_') + '_gradebook.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('Gradebook exported ⬇', 'ok', 2000);
+    });
+    body.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', async () => {
+      const row = body.querySelector(`.gt-row[data-user="${btn.getAttribute('data-save')}"]`);
+      try {
+        await api(`/api/assignments/${asnId}/grade`, 'POST', {
+          userId: btn.getAttribute('data-save'),
+          grade: row.querySelector('.gt-grade').value === '' ? null : +row.querySelector('.gt-grade').value,
+          feedback: row.querySelector('.gt-fb').value.trim()
+        });
+        btn.textContent = '✓ saved';
+        setTimeout(() => { btn.textContent = 'Save'; }, 1500);
+      } catch (e) { toast(e.message, 'err'); }
+    }));
+  }
+
+  async function submitModal(asnId, title) {
+    const body = document.createElement('div');
+    body.innerHTML = '<p style="color:var(--ink3)">Loading your projects…</p>';
+    const m = modal({ title: '📤 Submit: ' + title, body });
+    let projects;
+    try { projects = (await api('/api/projects')).projects || []; }
+    catch (e) { body.innerHTML = `<p class="form-err">${esc(e.message)}</p>`; return; }
+    if (!projects.length) {
+      body.innerHTML = '<div class="empty-state"><span class="e-icon">🧪</span><h3>No projects yet</h3><p>Build your circuit in the editor first, then come back and submit it here.</p></div>';
+      return;
+    }
+    body.innerHTML = `
+      <div class="field"><label>Pick the project to submit</label><select id="sm-proj">${projects.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>
+      <p class="form-note">Your teacher can open and run this project, then leave a grade and feedback. Resubmitting replaces the previous entry (and its grade).</p>
+      <button class="btn primary block lg" id="sm-go" style="margin-top:10px">Submit 📤</button>`;
+    body.querySelector('#sm-go').addEventListener('click', async () => {
+      try {
+        await api(`/api/assignments/${asnId}/submit`, 'POST', { projectId: body.querySelector('#sm-proj').value });
+        m.close(); toast('Submitted! 🎉'); loadProjects();
+      } catch (e) { toast(e.message, 'err'); }
+    });
   }
 
   /* ---------- dashboard bindings ---------- */
@@ -2112,7 +2749,6 @@
       $$('.tab').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
       app.dashTab = t.getAttribute('data-tab');
-      if (app.dashTab === 'mine' || app.dashTab === 'community') { }
       loadProjects();
     }));
     const appEl = $('#app'); if (appEl) appEl.addEventListener('click', e => { const btn = e.target.closest('#new-project-btn'); if (btn) newProjectModal(); });
@@ -2121,42 +2757,48 @@
       if (app.view === 'dashboard' && e.key === '/' && !e.target.matches('input')) { e.preventDefault(); const s = $('#dash-search'); if (s) s.focus(); }
       if (app.view === 'dashboard' && e.key === '?' && !e.target.matches('input')) shortcutsModal();
     });
-    
-    // Add dashboard tab click handler to prevent double nav in mobile
-    $$('.tab').forEach(t => {
-      if (!t._dashboardTabListener) {
-        t._dashboardTabListener = true;
-        t.addEventListener('click', () => {
-          if (window.innerWidth <= 768) {
-            const drawer = $('#dash-side');
-            if (drawer && drawer.classList.contains('open')) {
-              drawer.classList.remove('open');
-              document.body.classList.remove('dash-nav-open');
-              const burger = $('#dash-burger');
-              if (burger) burger.classList.remove('open');
-            }
-          }
-        });
-      }
-    });
-    const db = $('#dash-burger'); if (db) db.addEventListener('click', () => { const side = $('#dash-side'); if (side) side.classList.toggle('open'); });
-    const tb = $('#theme-btn'); if (tb) tb.addEventListener('click', toggleTheme);
-    const ab = $('#account-btn'); if (ab) ab.addEventListener('click', accountSettingsModal);
-    const sb = $('#shortcuts-btn'); if (sb) sb.addEventListener('click', shortcutsModal);
+    window.addEventListener('offline', () => toast('📡 You went offline — edits stay on this device until you reconnect', 'warn', 4200));
+    window.addEventListener('online', () => toast('📡 Back online', 'ok', 2200));
+
+    // Dashboard mobile drawer — toggle, outside-click / Escape close,
+    // and close-after-pick via delegation (survives folder/tag re-renders)
+    const db = $('#dash-burger'), dashSide = $('#dash-side');
+    if (db && dashSide) {
+      const setOpen = open => {
+        db.classList.toggle('open', open);
+        dashSide.classList.toggle('open', open);
+        document.body.classList.toggle('dash-nav-open', open);
+        db.setAttribute('aria-expanded', String(open));
+      };
+      db.addEventListener('click', e => { e.stopPropagation(); setOpen(!dashSide.classList.contains('open')); });
+      document.addEventListener('click', e => {
+        if (!dashSide.classList.contains('open')) return;
+        // e.target === dashSide means the click landed on the scrim pseudo-element
+        // (.dash-side.open::before) — treat it as an "outside" click.
+        if (e.target === dashSide) { setOpen(false); return; }
+        if (!dashSide.contains(e.target) && !db.contains(e.target)) setOpen(false);
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+      dashSide.addEventListener('click', e => {
+        if (window.innerWidth <= 768 && e.target.closest('.folder-item, .tag-pill, .tab')) setOpen(false);
+      });
+    }
     const uc = $('#user-chip'); if (uc) uc.addEventListener('click', e => {
+      const isAdmin = app.user && app.user.role === 'admin';
       menu(e.clientX, e.clientY, [
         { icon: (app.user && app.user.avatar) || '🧑‍🔧', label: app.user ? `${app.user.name} · ${app.user.email}` : 'Account', fn: app.user ? accountSettingsModal : () => { app.view = 'landing'; show('landing'); } },
         '-',
+        ...(isAdmin ? [{ icon: '🛡️', label: 'Admin console', fn: () => { location.href = '/admin'; } }] : []),
         { icon: '⚙️', label: 'Account settings', fn: accountSettingsModal },
-        { icon: '⌨️', label: 'Shortcuts', fn: shortcutsModal },
-        { icon: '🌗', label: 'Toggle theme', fn: toggleTheme },
+        { icon: '⌨️', label: 'Keyboard shortcuts', fn: shortcutsModal },
+        { icon: '🌙', label: 'Theme · Dark', fn: () => toast('CircuitTecture is always dark — designed for night labs ✨', 'ok', 2200) },
         '-',
-        { icon: '🚪', label: 'Log out', danger: true, fn: async () => { 
-          if (app.dirty && !confirm('You have unsaved changes. Log out anyway?')) return; 
+        { icon: '🚪', label: 'Log out', danger: true, fn: async () => {
+          if (app.dirty && !confirm('You have unsaved changes. Log out anyway?')) return;
           app.user = null;
           app.dirty = false;
-          try { await api('/api/logout', 'POST', {}); } catch {} 
-          location.href = '/'; 
+          try { await api('/api/logout', 'POST', {}); } catch {}
+          location.href = '/';
         } }
       ]);
     });
@@ -2219,20 +2861,22 @@
       $('#v-run').addEventListener('click', () => {
         CS.sim.doc = { components: CS.canvas.doc.components, wires: CS.canvas.doc.wires };
         CS.sim.speed = 1;
-        if (CS.sim.start(project.code, project.lang || 'cpp')) {
+        const skMap = (project.sketches && typeof project.sketches === 'object' && Object.keys(project.sketches).length) ? project.sketches : null;
+        if (CS.sim.start(skMap || project.code, skMap ? undefined : (project.lang || 'cpp'))) {
           toast('Simulation running ▶', 'ok', 1200);
           $('#v-run').style.background = 'linear-gradient(135deg,#16a34a,#22c55e)';
         }
       });
       $('#v-stop').addEventListener('click', () => { CS.sim.stop(); $('#v-run').style.background = ''; });
-      CS.sim.on('serial', CS.debounce(() => {
+      CS.sim.on('serial', CS.throttle(() => {
         const out = $('#serial-out');
         const evs = CS.sim.serialEvents;
-        for (let i = lastSerialIdx; i < evs.length; i++) { const s = document.createElement('span'); if (evs[i].sys) s.className = 'sys'; s.textContent = evs[i].text + (evs[i].nl !== false ? '\n' : ''); out.appendChild(s); }
+        const multiB = (CS.sim.boards || []).length > 1;
+        for (let i = lastSerialIdx; i < evs.length; i++) { const s = document.createElement('span'); if (evs[i].sys) s.className = 'sys'; s.textContent = (multiB && evs[i].board ? `[${evs[i].board}] ` : '') + evs[i].text + (evs[i].nl !== false ? '\n' : ''); out.appendChild(s); }
         lastSerialIdx = evs.length; out.scrollTop = out.scrollHeight;
       }, 40));
       CS.sim.on('dirty', ids => ids.forEach(id => CS.canvas.updateComp(id)));
-      CS.sim.on('tick', CS.debounce(() => CS.canvas.updateFlows(), 150));
+      CS.sim.on('tick', CS.throttle(() => CS.canvas.updateFlows(), 150));
       CS.sim.on('state', s => { if (s === 'idle') { CS.canvas.renderAll(); } });
       $('#v-clear').addEventListener('click', () => { $('#serial-out').innerHTML = ''; lastSerialIdx = 0; if (CS.sim.serialEvents) CS.sim.serialEvents.length = 0; });
     } catch (e) {

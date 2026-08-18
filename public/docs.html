@@ -159,8 +159,6 @@ void loop() {
       </ul>
       <p>Switch between languages using the dropdown in the Code panel header. Your code is auto-saved with the project.</p>
 
-      <div class="tip-box"><i>🤖</i>Use the <strong>AI Assistant</strong> tab to ask questions about your circuit or get code suggestions. It understands your current wiring and board configuration.</div>
-
       <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
 
       <h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
@@ -280,12 +278,41 @@ time.ticks_ms()</code></pre>
       <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
 
       <h2 id="logic-analyzer">Logic Analyzer</h2>
-      <p>The built-in logic analyzer captures digital and analog signals in real-time during simulation. Open it from the <strong>Scope</strong> tab in the right dock.</p>
+      <p>The built-in scope captures digital and analog signals in real-time during simulation. Open it from the <strong>Scope</strong> tab in the right dock.</p>
       <ul>
-        <li>Add channels by selecting pins from the dropdown and clicking <strong>+ channel</strong></li>
-        <li>Supports up to 8 simultaneous channels</li>
-        <li>Adjustable timebase and vertical scale</li>
-        <li>Hover to inspect exact voltage/timing at cursor position</li>
+        <li>Add channels by picking a pin from the dropdown — grouped per board when several boards are on the bench — and clicking <strong>+</strong></li>
+        <li>Color-coded traces scroll in a live 4-second window; click a channel chip to remove it</li>
+        <li>Tip: the <strong>Watch</strong> row in the Serial panel evaluates sketch variables live (<code>__vars</code>), and the Pins tab shows per-board pin occupancy</li>
+      </ul>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="multi-board">Multi-Board Circuits</h2>
+      <p>Drop more than one microcontroller on the bench and <strong>every board runs its own sketch in parallel</strong> — no extra setup. CircuitTecture simulates the whole fleet over one shared circuit.</p>
+      <h3>Board tabs</h3>
+      <p>Each board gets a tab above the code editor (name + index, e.g. <em>Uno R3 1</em>, <em>Uno R3 2</em>). Click a tab to edit that board&rsquo;s sketch; language and breakpoints are kept per board, and sketches are saved with the project.</p>
+      <h3>Linking boards with UART</h3>
+      <p>Wire one board&rsquo;s <strong>TX</strong> pin to another board&rsquo;s <strong>RX</strong> pin (Uno: TX=D1, RX=D0; Pico: TX=GP0, RX=GP1; ESP32: TX0=1, RX0=3; Raspberry Pi: TX=GPIO14, RX=GPIO15). Bytes printed on one board (<code>Serial.print/write</code>) arrive in the other board&rsquo;s receive buffer (<code>Serial.read()</code>, <code>Serial.readString()</code>…). If the two sides use different baud rates from <code>Serial.begin()</code>, the serial monitor shows a mismatch warning. Plain digital links work too — a driven pin on one board reads HIGH/LOW on the other.</p>
+      <h3>Board-aware tools</h3>
+      <p>Serial output carries a colored tag per board. Scope channels, watch variables and the pinout panel are all scoped per board. Breakpoints and single-stepping follow the tab you&rsquo;re looking at.</p>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">
+
+      <h2 id="classroom">Classroom</h2>
+      <p>CircuitTecture has a built-in classroom workflow for STEM courses.</p>
+      <h3>For teachers</h3>
+      <ul>
+        <li>Sign up as a <strong>Teacher</strong> (account-type picker at signup)</li>
+        <li>Open the <strong>🎓 Classroom</strong> dashboard tab &rarr; <strong>＋ New class</strong> &rarr; share the 6-letter invite code</li>
+        <li>Post assignments with briefs and due dates; review the roster anytime</li>
+        <li>Open the <strong>Gradebook</strong> on an assignment: run each submission live (read-only), then save a score and written feedback &mdash; or export the gradebook as CSV</li>
+      </ul>
+      <h3>For students</h3>
+      <ul>
+        <li>Join a class from the <strong>🎓 Classroom</strong> tab with the invite code</li>
+        <li>Assignments show briefs, due dates and overdue flags</li>
+        <li><strong>Submit project</strong> picks one of your circuits; resubmitting replaces the previous entry</li>
+        <li>Your grade and the teacher&rsquo;s feedback appear right on the assignment card</li>
       </ul>
 
       <hr style="border:none;border-top:1px solid var(--line);margin:40px 0">

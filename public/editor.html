@@ -99,10 +99,11 @@
             <div class="code-head">
               <select id="lang-select"><option value="cpp">Arduino C/C++</option><option value="py">MicroPython</option></select>
               <select id="template-select"><option value="">✨ Examples…</option></select>
-              <select id="editor-theme" title="Editor theme"><option value="vs-dark">Dark</option><option value="vs">Light</option><option value="system">System</option></select>
+              <select id="editor-theme" title="Code editor theme"><option value="vs-dark">Dark</option><option value="hc-black">High Contrast</option></select>
               <select id="editor-font" title="Editor font size"><option value="12">12px</option><option value="13" selected>13px</option><option value="14">14px</option><option value="16">16px</option><option value="18">18px</option></select>
               <button class="btn ghost sm" id="export-code-btn" title="Download .ino / .py">⬇ Export</button>
             </div>
+            <div id="board-tabs" class="board-tabs"></div>
             <div id="code-editor" class="code-editor"></div>
             <div id="problems-panel" class="problems-panel"><div class="problems-head"><b>Problems</b><span class="problems-count" id="problems-count">0</span><button class="btn ghost xs" id="problems-clear">clear</button></div><div id="problems-list"><div class="problem-empty">No problems detected ✓</div></div></div>
             <div class="serial-wrap">
@@ -143,6 +144,14 @@
 <!-- overlays -->
 <div id="modal-root"></div>
 <div id="toast-root" aria-live="polite"></div>
+
+<!-- Command palette (Ctrl/⌘+K) -->
+<div id="palette-back" class="palette-back">
+  <div class="palette" role="dialog" aria-label="Command palette">
+    <input id="palette-input" type="search" placeholder="Type a command — run, save, export, add part…" autocomplete="off" spellcheck="false">
+    <div id="palette-list" class="palette-list" role="listbox"></div>
+  </div>
+</div>
 <div id="tour-root"></div>
 
 <script src="/js/util.js" defer></script>
@@ -153,7 +162,6 @@
 <script src="/js/sim.js" defer></script>
 <script src="/js/canvas.js" defer></script>
 <script src="/js/editor.js" defer></script>
-<script src="/js/assistant.js" defer></script>
 <script src="/js/app.js" defer></script>
 </body>
 </html>

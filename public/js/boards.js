@@ -49,18 +49,55 @@
       desc: 'Arduino ' + name + ' — ATmega328P, 16 MHz, 14 digital (6 PWM), 6 analog in, 32 KB flash.',
       pins,
       render(def) {
-        let s = R(0, 0, 250, 150, '#0e7c86', 'rx="9"') + R(0, 0, 250, 150, 'none', 'rx="9" stroke="#0aa" stroke-width="1.5"');
-        s += R(-2, 14, 20, 34, '#c8ccd4', 'rx="4" stroke="#9aa1ad"') + R(1, 18, 13, 26, '#3a3f47', 'rx="2"'); // USB-B
-        s += R(-2, 96, 22, 26, '#14171d', 'rx="5"') + R(2, 100, 14, 18, '#000'); // barrel jack
-        s += R(88, 52, 74, 20, '#14161d', 'rx="3"') + T(125, 65, 'ATMEGA328P', '#3d4453', 6); // mcu
-        s += R(90, 30, 26, 8, '#c8ccd4') + R(170, 84, 14, 10, '#d4d8df'); // crystal/cap
-        s += R(208, 96, 26, 16, '#10141f', 'rx="2"') + T(221, 107, 'ICSP', '#3d4453', 5); // icsp
-        s += R(38, 122, 9, 9, '#2b303b', 'rx="2"'); // reset btn
-        s += CI(70, 34, 3, '#facc15') + T(70, 28, 'L', '#facc15', 5);
-        s += CI(240, 60, 2.5, '#22c55e') + T(240, 54, 'ON', '#22c55e', 5);
-        s += headerRow(66, 10, 14, 12) + headerRow(54, 140, 6, 12) + headerRow(150, 140, 6, 12);
-        s += T(20, 74, 'ARDUINO', '#e6f7f9', 10, 'start') + T(20, 87, name.toUpperCase(), '#bfe9ee', 8, 'start') + T(20, 78, '', '#fff');
-        s += R(28, 66, 10, 12, 'none', 'stroke="#e6f7f9" stroke-width="1.4"') + T(33, 75, '∞', '#e6f7f9', 8);
+        // Semi-realistic Uno R3 — teal PCB with sheen, plated mounting holes,
+        // metal USB shell, electrolytic cans, silkscreen.
+        let s = `<defs>
+          <linearGradient id="unoPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#12949e"/><stop offset="55%" stop-color="#0e7c86"/><stop offset="100%" stop-color="#0a6169"/></linearGradient>
+          <linearGradient id="unoMetal" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8ecf3"/><stop offset="45%" stop-color="#c8ccd4"/><stop offset="100%" stop-color="#9aa1ad"/></linearGradient>
+          <linearGradient id="unoChip" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#232936"/><stop offset="100%" stop-color="#14161d"/></linearGradient>
+          <linearGradient id="unoSheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity=".13"/><stop offset="35%" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+          <linearGradient id="unoCan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#274060"/><stop offset="50%" stop-color="#4a6fa5"/><stop offset="100%" stop-color="#1e3350"/></linearGradient>
+        </defs>`;
+        // PCB body + sheen + bottom edge shade
+        s += R(0, 0, 250, 150, 'url(#unoPcb)', 'rx="9"');
+        s += R(0, 0, 250, 40, 'url(#unoSheen)', 'rx="9"');
+        s += R(0, 144, 250, 6, '#07393f', 'rx="9" opacity=".55"');
+        s += R(0, 0, 250, 150, 'none', 'rx="9" stroke="#12aab5" stroke-width="1.2" opacity=".7"');
+        // mounting holes (silver-plated)
+        [[10, 75], [240, 75], [14, 134], [236, 134]].forEach(([hx, hy]) => { s += CI(hx, hy, 4, 'none', 'stroke="#9aa1ad" stroke-width="1" opacity=".8"') + CI(hx, hy, 2.6, '#0a3f45'); });
+        // USB-B: metal shell + ridges + recess
+        s += R(-3, 13, 22, 36, 'url(#unoMetal)', 'rx="4" stroke="#7c8490" stroke-width=".8"');
+        s += R(2, 15, 14, 3, '#aab2be', 'rx="1"') + R(2, 21, 14, 3, '#aab2be', 'rx="1"');
+        s += R(3, 34, 12, 11, '#2b3038', 'rx="2"') + R(5, 37, 8, 5, '#e8ecf3', 'rx="1"');
+        // barrel jack: body + silver rim + center hole
+        s += R(-3, 95, 24, 28, '#15181f', 'rx="5" stroke="#2b303b" stroke-width="1"');
+        s += CI(10, 109, 7.5, 'none', 'stroke="#9aa1ad" stroke-width="1.6"') + CI(10, 109, 4.6, '#000');
+        // ATmega328P with legs + notch dot
+        for (let i = 0; i < 14; i++) { s += R(94 + i * 4.6, 46.5, 2.2, 5.5, '#aab2be'); s += R(94 + i * 4.6, 72, 2.2, 5.5, '#aab2be'); }
+        s += R(88, 52, 74, 20, 'url(#unoChip)', 'rx="2.5" stroke="#2b303b" stroke-width=".8"');
+        s += CI(94, 57, 1.8, '#3d4453');
+        s += T(125, 66, 'ATMEGA328P', '#5a6478', 6.4);
+        // crystal + voltage regulator + electrolytic cans
+        s += R(90, 28, 26, 9, 'url(#unoMetal)', 'rx="4.5" stroke="#8a919d" stroke-width=".6"') + R(97, 25, 12, 3, '#aab2be', 'rx="1.5"');
+        s += R(34, 52, 16, 10, '#191d24', 'rx="2"') + R(38, 46, 8, 6, 'url(#unoMetal)');
+        s += R(162, 84, 11, 12, 'url(#unoCan)', 'rx="2" stroke="#16233a" stroke-width=".8"') + R(162, 84, 11, 4, '#c8ccd4', 'rx="2"') + T(167.5, 88, '+', '#16233a', 5);
+        s += R(176, 84, 11, 12, 'url(#unoCan)', 'rx="2" stroke="#16233a" stroke-width=".8"') + R(176, 84, 11, 4, '#c8ccd4', 'rx="2"') + T(181.5, 88, '+', '#16233a', 5);
+        // ICSP 2×3 header with plated holes
+        s += R(206, 94, 30, 18, '#10141f', 'rx="2"');
+        [0, 1, 2].forEach(i => { s += CI(214 + i * 9, 99, 2, '#0a0d14', 'stroke="#8a6f2e" stroke-width=".8"') + CI(214 + i * 9, 107, 2, '#0a0d14', 'stroke="#8a6f2e" stroke-width=".8"'); });
+        s += T(221, 119, 'ICSP', '#cfeef2', 5);
+        // reset tactile button (silver body, dark stem)
+        s += R(37, 121, 11, 11, 'url(#unoMetal)', 'rx="2" stroke="#8a919d" stroke-width=".7"') + CI(42.5, 126.5, 3, '#e11d48', 'stroke="#9f1239" stroke-width=".8"') + T(42.5, 142, 'RESET', '#cfeef2', 5);
+        // chip LEDs: L (amber) + ON (green)
+        s += R(66, 31.5, 8, 5, '#facc15', 'rx="2"') + CI(70, 34, 1.4, '#fff7d6') + T(70, 26, 'L', '#fff7d6', 5.6);
+        s += R(236, 57.5, 8, 5, '#22c55e', 'rx="2"') + CI(240, 60, 1.4, '#d9f9e5') + T(240, 52, 'ON', '#d9f9e5', 5.6);
+        // header strips with plated holes (pins draw on top)
+        function hstrip(x0, y, n, step) { let h = R(x0 - 5, y - 5.5, (n - 1) * step + 10, 11, '#0d1119', 'rx="2" stroke="#1b2230" stroke-width=".7"'); for (let i = 0; i < n; i++) h += CI(x0 + i * step, y, 2.3, '#07090e', 'stroke="#8a6f2e" stroke-width=".9"'); return h; }
+        s += hstrip(66, 10, 14, 12) + hstrip(54, 140, 6, 12) + hstrip(150, 140, 6, 12);
+        // silkscreen: logo box + brand + model
+        s += R(28, 62, 12, 14, 'none', 'stroke="#e9fbfd" stroke-width="1.5"') + T(34, 72.5, '∞', '#e9fbfd', 8);
+        s += T(20, 90, 'ARDUINO', '#f0feff', 11, 'start') + T(20, 101, name.toUpperCase(), '#bdeef4', 8.5, 'start');
+        s += T(246, 145.5, '⌀ ATmega · 16 MHz', '#7fd4dc', 5.4, 'end');
         s += plabels(def);
         return s;
       }
@@ -396,9 +433,11 @@
     pins: [{ id: '+', label: '+', x: 16, y: 50, o: 'l', kind: 'power' }, { id: '-', label: '−', x: 94, y: 50, o: 'r', kind: 'ground' }],
     props: [{ key: 'voltage', label: 'Voltage (V)', type: 'number', def: 9, min: 1.5, max: 24, step: 0.5 }],
     render(def, c) {
-      let s = path('M16 50 L8 50 M8 42 L8 26', '#7d8fb3', 2.5) + path('M94 50 L102 50 M102 42 L102 26', '#7d8fb3', 2.5);
-      s += R(8, 8, 94, 34, '#1f2937', 'rx="6" stroke="#4b5563" stroke-width="1.3"');
-      s += R(8, 8, 94, 12, '#e2473d', 'rx="6"');
+      let s = `<defs><linearGradient id="batBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3d4857"/><stop offset="100%" stop-color="#111827"/></linearGradient><linearGradient id="batBand" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f45f4e"/><stop offset="100%" stop-color="#c92f27"/></linearGradient></defs>`;
+      s += path('M16 50 L8 50 M8 42 L8 26', '#94a3b8', 2.5) + path('M94 50 L102 50 M102 42 L102 26', '#94a3b8', 2.5);
+      s += R(8, 8, 94, 34, 'url(#batBody)', 'rx="6" stroke="#0b1220" stroke-width="1.2"');
+      s += R(8, 8, 94, 12, 'url(#batBand)', 'rx="6"') + R(10, 9, 90, 4, '#ffffff', 'rx="2" opacity=".22"');
+      s += R(10.5, 45, 5, 10, '#c8ccd4', 'rx="1.5"') + R(94.5, 45, 5, 10, '#c8ccd4', 'rx="1.5"');
       s += T(55, 33, (c.props.voltage || 9) + ' V', '#e5e7eb', 10) + T(16, 17, '+', '#fff', 8) + T(96, 17, '−', '#fff', 8);
       return s;
     },

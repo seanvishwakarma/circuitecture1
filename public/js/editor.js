@@ -133,7 +133,7 @@
       this.errLine = 0; this.errMsg = '';
       this.problems = [];
       this.fontSize = 13;
-      this.theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'vs' : 'vs-dark';
+      this.theme = localStorage.getItem('ct-code-theme') || 'vs-dark';
       this.onChange = () => { };
       this.onProblemsChange = () => { };
       this._suppress = false;

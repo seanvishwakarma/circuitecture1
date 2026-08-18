@@ -62,6 +62,7 @@ function initSchema() {
       board TEXT DEFAULT 'uno',
       lang TEXT DEFAULT 'cpp',
       code TEXT DEFAULT '',
+      sketches TEXT NOT NULL DEFAULT '{}',
       thumb TEXT DEFAULT '',
       components TEXT NOT NULL DEFAULT '[]',
       wires TEXT NOT NULL DEFAULT '[]',
@@ -83,17 +84,6 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_projects_public ON projects(public);
     CREATE INDEX IF NOT EXISTS idx_projects_official ON projects(official);
     CREATE INDEX IF NOT EXISTS idx_projects_shareId ON projects(shareId);
-
-    CREATE TABLE IF NOT EXISTS project_versions (
-      id TEXT PRIMARY KEY,
-      projectId TEXT NOT NULL,
-      name TEXT NOT NULL,
-      snapshot TEXT NOT NULL,
-      createdAt INTEGER NOT NULL,
-      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_project_versions_projectId ON project_versions(projectId);
 
     CREATE TABLE IF NOT EXISTS assignments (
       id TEXT PRIMARY KEY,
@@ -123,6 +113,28 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_submissions_assignmentId ON submissions(assignmentId);
     CREATE INDEX IF NOT EXISTS idx_submissions_userId ON submissions(userId);
+
+    CREATE TABLE IF NOT EXISTS classes (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      code TEXT NOT NULL UNIQUE,
+      ownerId TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      FOREIGN KEY (ownerId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_classes_ownerId ON classes(ownerId);
+
+    CREATE TABLE IF NOT EXISTS class_members (
+      classId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      joinedAt INTEGER NOT NULL,
+      PRIMARY KEY (classId, userId),
+      FOREIGN KEY (classId) REFERENCES classes(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_class_members_userId ON class_members(userId);
 
     CREATE TABLE IF NOT EXISTS audit_log (
       id TEXT PRIMARY KEY,
@@ -194,9 +206,22 @@ function initSchema() {
 
 initSchema();
 
+// Legacy cleanup — version history was removed; drop the leftover table from old databases.
+sqlite.exec('DROP TABLE IF EXISTS project_versions');
+
 // Auto-migrate missing columns if table already existed
 try {
   sqlite.exec('ALTER TABLE sessions ADD COLUMN csrf TEXT');
+} catch (_e) {
+  // Column already exists or table freshly created
+}
+try {
+  sqlite.exec("ALTER TABLE projects ADD COLUMN sketches TEXT NOT NULL DEFAULT '{}'");
+} catch (_e) {
+  // Column already exists or table freshly created
+}
+try {
+  sqlite.exec("ALTER TABLE assignments ADD COLUMN classId TEXT");
 } catch (_e) {
   // Column already exists or table freshly created
 }
@@ -247,12 +272,12 @@ const STMT = {
   countProjects: sqlite.prepare(`SELECT COUNT(*) as count FROM projects`),
   countUserProjects: sqlite.prepare(`SELECT COUNT(*) as count FROM projects WHERE ownerId = ?`),
   insertProject: sqlite.prepare(`
-    INSERT INTO projects (id, ownerId, name, desc, board, lang, code, thumb, components, wires, tags, viewport, public, forkable, official, shareId, likers, forks, version, createdAt, updatedAt)
-    VALUES (@id, @ownerId, @name, @desc, @board, @lang, @code, @thumb, @components, @wires, @tags, @viewport, @public, @forkable, @official, @shareId, @likers, @forks, @version, @createdAt, @updatedAt)
+    INSERT INTO projects (id, ownerId, name, desc, board, lang, code, sketches, thumb, components, wires, tags, viewport, public, forkable, official, shareId, likers, forks, version, createdAt, updatedAt)
+    VALUES (@id, @ownerId, @name, @desc, @board, @lang, @code, @sketches, @thumb, @components, @wires, @tags, @viewport, @public, @forkable, @official, @shareId, @likers, @forks, @version, @createdAt, @updatedAt)
   `),
   updateProject: sqlite.prepare(`
     UPDATE projects SET name = COALESCE(@name, name), desc = COALESCE(@desc, desc), board = COALESCE(@board, board),
-    lang = COALESCE(@lang, lang), code = COALESCE(@code, code), thumb = COALESCE(@thumb, thumb),
+    lang = COALESCE(@lang, lang), code = COALESCE(@code, code), sketches = COALESCE(@sketches, sketches), thumb = COALESCE(@thumb, thumb),
     components = COALESCE(@components, components), wires = COALESCE(@wires, wires), tags = COALESCE(@tags, tags),
     viewport = COALESCE(@viewport, viewport), public = COALESCE(@public, public), forkable = COALESCE(@forkable, forkable),
     official = COALESCE(@official, official), shareId = COALESCE(@shareId, shareId), likers = COALESCE(@likers, likers),
@@ -260,15 +285,28 @@ const STMT = {
   `),
   deleteProject: sqlite.prepare(`DELETE FROM projects WHERE id = ?`),
 
-  // Project Versions
-  getProjectVersions: sqlite.prepare(`SELECT * FROM project_versions WHERE projectId = ? ORDER BY createdAt DESC`),
-  insertProjectVersion: sqlite.prepare(`INSERT INTO project_versions (id, projectId, name, snapshot, createdAt) VALUES (?, ?, ?, ?, ?)`),
 
   // Assignments & Submissions
   getAllAssignments: sqlite.prepare(`SELECT * FROM assignments ORDER BY createdAt DESC`),
   getAssignmentById: sqlite.prepare(`SELECT * FROM assignments WHERE id = ?`),
-  insertAssignment: sqlite.prepare(`INSERT INTO assignments (id, ownerId, title, brief, due, rubric, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)`),
+  insertAssignment: sqlite.prepare(`INSERT INTO assignments (id, ownerId, classId, title, brief, due, rubric, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
   deleteAssignment: sqlite.prepare(`DELETE FROM assignments WHERE id = ?`),
+  getAssignmentsByOwner: sqlite.prepare(`SELECT * FROM assignments WHERE ownerId = ? ORDER BY createdAt DESC`),
+  getAssignmentsByClass: sqlite.prepare(`SELECT * FROM assignments WHERE classId = ? ORDER BY createdAt DESC`),
+  deleteAssignmentsForClass: sqlite.prepare(`DELETE FROM assignments WHERE classId = ?`),
+
+  // Classes
+  getClassById: sqlite.prepare(`SELECT * FROM classes WHERE id = ?`),
+  getClassByCode: sqlite.prepare(`SELECT * FROM classes WHERE code = ?`),
+  getClassesByOwner: sqlite.prepare(`SELECT * FROM classes WHERE ownerId = ? ORDER BY createdAt DESC`),
+  insertClass: sqlite.prepare(`INSERT INTO classes (id, name, code, ownerId, createdAt) VALUES (?, ?, ?, ?, ?)`),
+  deleteClassRow: sqlite.prepare(`DELETE FROM classes WHERE id = ?`),
+  getRoster: sqlite.prepare(`SELECT u.id, u.name, u.email, u.avatar, u.role, m.joinedAt FROM class_members m JOIN users u ON u.id = m.userId WHERE m.classId = ? ORDER BY u.name`),
+  getMembership: sqlite.prepare(`SELECT * FROM class_members WHERE classId = ? AND userId = ?`),
+  insertMember: sqlite.prepare(`INSERT OR IGNORE INTO class_members (classId, userId, joinedAt) VALUES (?, ?, ?)`),
+  deleteMember: sqlite.prepare(`DELETE FROM class_members WHERE classId = ? AND userId = ?`),
+  countMembers: sqlite.prepare(`SELECT COUNT(*) as count FROM class_members WHERE classId = ?`),
+  getClassesForStudent: sqlite.prepare(`SELECT c.* FROM classes c JOIN class_members m ON m.classId = c.id WHERE m.userId = ? ORDER BY c.createdAt DESC`),
   getSubmissionsForAssignment: sqlite.prepare(`SELECT * FROM submissions WHERE assignmentId = ? ORDER BY submittedAt DESC`),
   getSubmission: sqlite.prepare(`SELECT * FROM submissions WHERE assignmentId = ? AND userId = ?`),
   insertSubmission: sqlite.prepare(`INSERT INTO submissions (id, assignmentId, userId, projectId, grade, feedback, submittedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`),
@@ -491,6 +529,7 @@ const dbApi = {
       board: p.board || 'uno',
       lang: p.lang || 'cpp',
       code: p.code || '',
+      sketches: s(p.sketches, {}),
       thumb: p.thumb || '',
       components: s(p.components, []),
       wires: s(p.wires, []),
@@ -550,6 +589,7 @@ const dbApi = {
       board: project.board || 'uno',
       lang: project.lang || 'cpp',
       code: project.code || '',
+      sketches: JSON.stringify(project.sketches || {}),
       thumb: project.thumb || '',
       components: JSON.stringify(project.components || []),
       wires: JSON.stringify(project.wires || []),
@@ -644,8 +684,63 @@ const dbApi = {
   },
 
   saveAssignment(a) {
-    STMT.insertAssignment.run(a.id, a.ownerId, a.title, a.brief || '', a.due || null, a.rubric || '', a.createdAt || Date.now());
+    STMT.insertAssignment.run(a.id, a.ownerId, a.classId || null, a.title, a.brief || '', a.due || null, a.rubric || '', a.createdAt || Date.now());
     return dbApi.getAssignment(a.id);
+  },
+
+  getAssignmentsByOwner(ownerId) {
+    return STMT.getAssignmentsByOwner.all(ownerId);
+  },
+
+  getAssignmentsByClass(classId) {
+    return STMT.getAssignmentsByClass.all(classId);
+  },
+
+  // Classes
+  createClass(c) {
+    STMT.insertClass.run(c.id, c.name, c.code, c.ownerId, c.createdAt || Date.now());
+    return STMT.getClassById.get(c.id);
+  },
+
+  getClass(id) {
+    return STMT.getClassById.get(id) || null;
+  },
+
+  getClassByCode(code) {
+    return STMT.getClassByCode.get(String(code || '').trim().toUpperCase()) || null;
+  },
+
+  getClassesForTeacher(ownerId) {
+    return STMT.getClassesByOwner.all(ownerId).map(c => ({ ...c, members: STMT.countMembers.get(c.id).count }));
+  },
+
+  getClassesForStudent(userId) {
+    return STMT.getClassesForStudent.all(userId).map(c => ({ ...c, members: STMT.countMembers.get(c.id).count }));
+  },
+
+  joinClass(classId, userId) {
+    STMT.insertMember.run(classId, userId, Date.now());
+  },
+
+  leaveClass(classId, userId) {
+    STMT.deleteMember.run(classId, userId);
+  },
+
+  isClassMember(classId, userId) {
+    return !!STMT.getMembership.get(classId, userId);
+  },
+
+  getRoster(classId) {
+    return STMT.getRoster.all(classId);
+  },
+
+  // removes the class, its memberships and its assignments (submissions cascade)
+  deleteClass(classId) {
+    return sqlite.transaction(() => {
+      STMT.deleteAssignmentsForClass.run(classId);
+      sqlite.prepare(`DELETE FROM class_members WHERE classId = ?`).run(classId);
+      STMT.deleteClassRow.run(classId);
+    })();
   },
 
   deleteAssignment(id) {

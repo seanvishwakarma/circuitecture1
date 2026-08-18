@@ -47,7 +47,7 @@
   /* boot */
   document.addEventListener('DOMContentLoaded', boot);
   async function boot() {
-    setupThemeToggle();
+    pinDarkTheme();
     setupTabNav();
     try {
       const me = await api('/api/me');
@@ -125,24 +125,10 @@
     chip.title = 'Admin: ' + user.email;
   }
 
-  /* theme toggle */
-  function setupThemeToggle() {
-    const btn = document.getElementById('admin-theme-btn');
-    const html = document.documentElement;
-    const stored = localStorage.getItem('ct-theme');
-    if (stored) html.setAttribute('data-theme', stored);
-    updateThemeBtn(html.getAttribute('data-theme'));
-    btn.addEventListener('click', () => {
-      const cur = html.getAttribute('data-theme');
-      const next = cur === 'dark' ? 'light' : 'dark';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('ct-theme', next);
-      updateThemeBtn(next);
-    });
-  }
-  function updateThemeBtn(theme) {
-    const btn = document.getElementById('admin-theme-btn');
-    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  /* admin console is dark-only like the rest of the app */
+  function pinDarkTheme() {
+    localStorage.removeItem('ct-theme');
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
 
   /* tab navigation */
@@ -333,6 +319,15 @@
             </div>
             <canvas class="adm-sparkline" id="spark-sessions" style="display:block;margin-top:8px"></canvas>
           </div>
+          <div class="adm-glass-card" style="animation-delay:0.32s">
+            <span class="adm-stat-icon">🧪</span>
+            <div class="adm-stat-body">
+              <span class="adm-stat-value">${s.simRuns || 0}</span>
+              <span class="adm-stat-label">Simulations Run</span>
+              <span class="adm-stat-sub">${(s.activityHistory || []).reduce((a, h) => a + (h.sims || 0), 0)} in 14 days</span>
+            </div>
+            <canvas class="adm-sparkline" id="spark-sims" style="display:block;margin-top:8px"></canvas>
+          </div>
         </div>
 
         <div class="adm-glass-card" style="margin-top:20px;animation-delay:0.35s;padding:16px">
@@ -352,7 +347,7 @@
             <span><span class="adm-health-dot green"></span> Database</span>
             <span><span class="adm-health-dot green"></span> Session Store</span>
             <span><span class="adm-health-dot green"></span> Rate Limiter</span>
-            <span><span class="adm-health-dot green"></span> WebSocket</span>
+            <span><span class="adm-health-dot green"></span> API Router</span>
           </div>
         </div>
 
@@ -380,6 +375,7 @@
       drawSparkline('spark-uptime', sparkData, '#60a5fa');
       drawSparkline('spark-heap', sparkData, '#a78bfa');
       drawSparkline('spark-sessions', sparkData, '#f472b6');
+      if (hist.length) drawSparkline('spark-sims', hist.map(h => h.sims || 0), '#fbbf24');
     }, 100);
 
     /* real-time clock */
@@ -410,7 +406,11 @@
         <div class="adm-section-header">
           <h2>User Management</h2>
           <div class="adm-actions-right">
-            <input type="search" id="adm-user-search" class="adm-filter" placeholder="Search users…" style="width:240px">
+            <input type="search" id="adm-user-search" class="adm-filter" placeholder="Search users…" style="width:220px">
+            <select id="adm-role-filter" class="adm-filter" style="width:118px">
+              <option value="">All roles</option><option value="user">user</option>
+              <option value="teacher">teacher</option><option value="moderator">moderator</option><option value="admin">admin</option>
+            </select>
             <button class="btn primary sm" id="adm-create-user">＋ New User</button>
           </div>
         </div>
@@ -433,9 +433,8 @@
                   <td><span class="adm-user-avatar">${esc(u.avatar || '👤')}</span> <strong>${esc(u.name)}</strong></td>
                   <td><span class="adm-email">${esc(u.email)}</span></td>
                   <td>
-                    <select class="adm-input sm user-role-select" data-id="${esc(u.id)}" style="width:80px;padding:2px 4px;font-size:11px">
-                      <option value="user" ${u.role === 'user' ? 'selected' : ''}>user</option>
-                      <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>admin</option>
+                    <select class="adm-input sm user-role-select" data-id="${esc(u.id)}" style="width:96px;padding:2px 4px;font-size:11px">
+                      ${['user', 'teacher', 'moderator', 'admin'].map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
                     </select>
                   </td>
                   <td>${u.suspended ? '<span class="adm-badge err">Suspended</span>' : '<span class="adm-badge ok">Active</span>'}</td>
@@ -445,6 +444,7 @@
                     <button class="btn ghost xs" data-impersonate="${esc(u.id)}" title="Impersonate user">👤</button>
                     <button class="btn ghost xs" data-edit="${esc(u.id)}" title="Edit user">✏️</button>
                     <button class="btn ghost xs" data-suspend="${esc(u.id)}" title="${u.suspended ? 'Unsuspend' : 'Suspend'}">${u.suspended ? '✅' : '⛔'}</button>
+                    <button class="btn ghost xs" data-resetpw="${esc(u.id)}" title="Force password reset">🔑</button>
                     <button class="btn danger xs" data-delete="${esc(u.id)}" title="Delete user">🗑️</button>
                   </td>
                 </tr>
@@ -469,14 +469,21 @@
       });
     });
 
-    /* search filter */
+    /* combined text + role filter */
     const searchInput = document.getElementById('adm-user-search');
-    searchInput.addEventListener('input', () => {
+    const roleFilter = document.getElementById('adm-role-filter');
+    const applyUserFilters = () => {
       const q = searchInput.value.toLowerCase();
+      const rf = roleFilter ? roleFilter.value : '';
       document.querySelectorAll('#adm-user-tbody tr').forEach(tr => {
-        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+        const sel = tr.querySelector('.user-role-select');
+        const role = sel ? sel.value : '';
+        const okText = !q || tr.textContent.toLowerCase().includes(q);
+        tr.style.display = okText && (!rf || role === rf) ? '' : 'none';
       });
-    });
+    };
+    searchInput.addEventListener('input', applyUserFilters);
+    if (roleFilter) roleFilter.addEventListener('change', applyUserFilters);
 
     /* bulk selections listener */
     const selectAllCb = document.getElementById('bulk-select-all');
@@ -561,6 +568,29 @@
       await api('/api/admin/users/' + id, 'PUT', { suspended: !u.suspended });
       CS.toast(u.suspended ? 'Unsuspended' : 'Suspended');
       renderUsers(el);
+    }));
+    /* force password reset — shows the temp password exactly once */
+    el.querySelectorAll('[data-resetpw]').forEach(b => b.addEventListener('click', async () => {
+      const id = b.dataset.resetpw, u = users.find(x => x.id === id);
+      if (!u) return;
+      if (!confirm(`Reset ${u.name}'s password?
+
+A temporary password will be generated and all their sessions revoked.`)) return;
+      try {
+        const r = await api('/api/admin/users/' + id + '/reset-password', 'POST');
+        const mb = document.createElement('div');
+        mb.innerHTML = `<p>Temporary password for <b>${esc(u.name)}</b> — shown exactly once. Hand it over securely:</p>
+          <div style="display:flex;gap:8px;margin-top:10px"><input class="adm-input" id="rp-temp" style="flex:1;font-family:monospace;font-size:15px" readonly><button class="btn primary sm" id="rp-copy">📋 Copy</button></div>
+          <p class="adm-settings-help" style="margin-top:10px">All previous sessions were signed out. The user should change it from Account settings after logging in.</p>`;
+        mb.querySelector('#rp-temp').value = r.tempPassword;
+        CS.modal({ title: '🔑 Password reset — ' + u.email, body: mb });
+        mb.querySelector('#rp-copy').addEventListener('click', () => {
+          const inp = mb.querySelector('#rp-temp');
+          inp.select();
+          try { if (navigator.clipboard) navigator.clipboard.writeText(r.tempPassword); else document.execCommand('copy'); } catch { document.execCommand('copy'); }
+          CS.toast('Copied 📋');
+        });
+      } catch (err) { CS.toast(err.message, 'error'); }
     }));
     el.querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', () => deleteUser(b.dataset.delete, users)));
     document.getElementById('adm-create-user').addEventListener('click', () => createUser());
@@ -708,7 +738,14 @@
     el.querySelectorAll('[data-editp]').forEach(b => b.addEventListener('click', () => editProject(b.dataset.editp)));
     el.querySelectorAll('[data-pub]').forEach(b => b.addEventListener('click', async () => {
       const p = projects.find(x => x.id === b.dataset.pub);
-      await api('/api/admin/projects/' + p.id, 'PUT', { public: !p.public });
+      const body = { public: !p.public };
+      if (p.public) {
+        const reason = prompt(`Unpublish "${p.name}" from the community gallery?
+Reason (recorded in the audit log):`, 'moderation');
+        if (reason === null) return;
+        body.reason = reason;
+      }
+      await api('/api/admin/projects/' + p.id, 'PUT', body);
       CS.toast(p.public ? 'Unpublished' : 'Published');
       renderProjects(el);
     }));
@@ -1297,7 +1334,7 @@ Sessions: ${sys.sessions}</pre>
   async function renderFeatureFlags(el) {
     const r = await api('/api/admin/feature-flags', 'GET');
     const flags = r.flags || {};
-    const defaults = { maintenanceMode: false, communityEnabled: true, signupOpen: true, boardToggles: true, allowForking: true, allowSharing: true };
+    const defaults = { maintenanceMode: false, communityEnabled: true, signupOpen: true, teacherSignup: true, classroomEnabled: true, allowForking: true, allowSharing: true };
     el.innerHTML = `
       <div class="adm-section">
         <div class="adm-section-header"><h2>Feature Flags</h2></div>

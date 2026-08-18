@@ -50,7 +50,6 @@
     </nav>
 
     <div class="landing-nav-actions">
-      <button class="btn ghost sm" id="theme-btn" title="Toggle theme (currently dark)" aria-live="polite">🌙</button>
       <button class="btn ghost" data-auth="login">Log in</button>
       <button class="btn primary" data-auth="signup">Sign up free</button>
       <button class="mobile-burger-btn" id="mobile-burger-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav-drawer">
@@ -83,56 +82,31 @@
     <div class="hero" id="main-content">
       <div class="hero-glow"></div>
       
-      <!-- Decorative Circuit Canvas Background Overlay -->
+      <!-- Decorative circuit backdrop — kept intentionally faint and slow so the hero stays calm -->
       <div class="hero-bg-circuit" aria-hidden="true">
-        <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; opacity:0.12;">
-          <defs>
-            <linearGradient id="traceGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#22d3ee" stop-opacity="0"/>
-              <stop offset="50%" stop-color="#22d3ee" stop-opacity="1"/>
-              <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
-            </linearGradient>
-            <linearGradient id="traceGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#4ade80" stop-opacity="0"/>
-              <stop offset="50%" stop-color="#4ade80" stop-opacity="1"/>
-              <stop offset="100%" stop-color="#4ade80" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <!-- Main horizontal traces -->
-          <path d="M 0 120 L 200 120 L 300 200 L 550 200 L 650 120 L 900 120 L 1000 200 L 1200 200" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="6 6"/>
-          <path d="M 0 500 L 250 500 L 400 370 L 700 370 L 800 500 L 1050 500 L 1200 400" fill="none" stroke="#4ade80" stroke-width="1.5"/>
-          <!-- Diagonal traces -->
-          <path d="M 100 0 L 100 80 L 200 120" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 5"/>
-          <path d="M 900 0 L 900 80 L 900 120" fill="none" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 5"/>
-          <path d="M 500 0 L 500 90 L 550 200" fill="none" stroke="#22d3ee" stroke-width="1" stroke-opacity="0.5"/>
-          <path d="M 700 600 L 700 500 L 700 370" fill="none" stroke="#4ade80" stroke-width="1" stroke-opacity="0.5"/>
-          <path d="M 1100 0 L 1100 150 L 1000 200" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 4" stroke-opacity="0.6"/>
-          <path d="M 300 700 L 300 550 L 400 370" fill="none" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.4"/>
+        <svg viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%;">
+          <!-- Two long, elegant traces with a gentle drifting pulse -->
+          <path d="M 0 140 L 220 140 L 320 210 L 560 210 L 660 140 L 900 140 L 1000 210 L 1200 210" fill="none" stroke="#22d3ee" stroke-width="1.2" stroke-opacity="0.5"/>
+          <path d="M 0 520 L 260 520 L 400 400 L 700 400 L 820 520 L 1060 520 L 1200 430" fill="none" stroke="#4ade80" stroke-width="1.2" stroke-opacity="0.4"/>
+          <path d="M 480 0 L 480 100 L 560 210" fill="none" stroke="#22d3ee" stroke-width="1" stroke-opacity="0.28"/>
+          <path d="M 760 700 L 760 540 L 700 400" fill="none" stroke="#4ade80" stroke-width="1" stroke-opacity="0.28"/>
           <!-- Junction nodes -->
-          <circle cx="200" cy="120" r="4" fill="#22d3ee"/>
-          <circle cx="300" cy="200" r="4" fill="#22d3ee"/>
-          <circle cx="550" cy="200" r="4" fill="#22d3ee"/>
-          <circle cx="650" cy="120" r="4" fill="#22d3ee"/>
-          <circle cx="900" cy="120" r="3" fill="#a78bfa"/>
-          <circle cx="1000" cy="200" r="3" fill="#22d3ee"/>
-          <circle cx="250" cy="500" r="4" fill="#4ade80"/>
-          <circle cx="400" cy="370" r="4" fill="#4ade80"/>
-          <circle cx="700" cy="370" r="4" fill="#4ade80"/>
-          <circle cx="800" cy="500" r="4" fill="#4ade80"/>
-          <circle cx="500" cy="90" r="3" fill="#22d3ee" opacity="0.5"/>
-          <circle cx="1100" cy="150" r="3" fill="#f59e0b" opacity="0.5"/>
-          <!-- IC chip outlines -->
-          <rect x="360" y="100" width="60" height="40" rx="4" fill="none" stroke="#334155" stroke-width="1"/>
-          <rect x="830" y="400" width="50" height="35" rx="4" fill="none" stroke="#334155" stroke-width="1"/>
-          <!-- Animated signal particles -->
+          <circle cx="320" cy="210" r="3.5" fill="#22d3ee"/>
+          <circle cx="660" cy="140" r="3.5" fill="#22d3ee"/>
+          <circle cx="900" cy="140" r="3" fill="#22d3ee" opacity="0.7"/>
+          <circle cx="400" cy="400" r="3.5" fill="#4ade80"/>
+          <circle cx="700" cy="400" r="3.5" fill="#4ade80"/>
+          <circle cx="820" cy="520" r="3.5" fill="#4ade80"/>
+          <!-- One subtle chip outline -->
+          <rect x="880" y="420" width="52" height="36" rx="5" fill="none" stroke="#334155" stroke-width="1"/>
+          <!-- Slow, sparse signal particles -->
           <circle r="3" fill="#67e8f9">
-            <animateMotion dur="4s" repeatCount="indefinite" path="M 0 120 L 200 120 L 300 200 L 550 200 L 650 120 L 900 120 L 1000 200 L 1200 200"/>
+            <animate attributeName="opacity" values="0;.9;.9;0" keyTimes="0;.08;.92;1" dur="11s" repeatCount="indefinite"/>
+            <animateMotion dur="11s" repeatCount="indefinite" path="M 0 140 L 220 140 L 320 210 L 560 210 L 660 140 L 900 140 L 1000 210 L 1200 210"/>
           </circle>
           <circle r="3" fill="#86efac">
-            <animateMotion dur="5s" repeatCount="indefinite" path="M 0 500 L 250 500 L 400 370 L 700 370 L 800 500 L 1050 500 L 1200 400"/>
-          </circle>
-          <circle r="2.5" fill="#c4b5fd">
-            <animateMotion dur="3s" repeatCount="indefinite" path="M 100 0 L 100 80 L 200 120"/>
+            <animate attributeName="opacity" values="0;.8;.8;0" keyTimes="0;.08;.92;1" dur="14s" begin="3s" repeatCount="indefinite"/>
+            <animateMotion dur="14s" begin="3s" repeatCount="indefinite" path="M 0 520 L 260 520 L 400 400 L 700 400 L 820 520 L 1060 520 L 1200 430"/>
           </circle>
         </svg>
       </div>
@@ -210,6 +184,13 @@
           <div>
             <h4>Classroom Ready</h4>
             <p>Built for individual makers and STEM educators.</p>
+          </div>
+        </div>
+        <div class="trust-item reveal" style="animation-delay: 0.4s">
+          <div class="trust-icon">🧩</div>
+          <div>
+            <h4>Multi-Board Linked</h4>
+            <p>Run several boards in parallel — wire TX→RX and they talk.</p>
           </div>
         </div>
       </div>
@@ -553,7 +534,7 @@
         <div class="community-card reveal" style="animation-delay: 0.2s">
           <div class="comm-icon">🏫</div>
           <h4>STEM Classroom Portal</h4>
-          <p>Deploy assignments to students, track progress, review circuit submissions, and provide auto-graded feedback.</p>
+          <p>Create classes with invite codes, deploy assignments with due dates, review circuit submissions, and grade with written feedback.</p>
           <a href="/features" class="comm-link">Explore Classroom Tools →</a>
         </div>
       </div>
@@ -625,11 +606,11 @@
       <!-- Stats row -->
       <div class="stats-row reveal">
         <div class="stat-pill">
-          <span class="stat-number">35+</span>
+          <span class="stat-number">50+</span>
           <span class="stat-label">Virtual Components</span>
         </div>
         <div class="stat-pill">
-          <span class="stat-number">6</span>
+          <span class="stat-number">14</span>
           <span class="stat-label">Starter Templates</span>
         </div>
         <div class="stat-pill">
@@ -668,7 +649,7 @@
         </div>
         <div class="faq-item reveal" style="animation-delay: 0.15s">
           <div class="faq-question">Can teachers assign projects to students?</div>
-          <div class="faq-answer">Yes! CircuitTecture includes a built-in Classroom Assignment module where educators can publish homework tasks, set due dates and rubrics, and grade student circuit submissions.</div>
+          <div class="faq-answer">Yes! CircuitTecture includes a built-in Classroom module: educators create classes, share a 6-letter invite code, post assignment briefs with due dates, and grade student circuit submissions with scores and written feedback — students submit projects straight from their lab.</div>
         </div>
       </div>
     </div>
@@ -680,12 +661,14 @@
       <div class="cta-card">
         <div class="cta-glow"></div>
         <div class="cta-content">
-          <h2>Ready to build your next circuit?</h2>
-          <p>Launch the interactive simulator right now. No registration required to explore demo projects.</p>
+          <span class="section-tag">🚀 Open sandbox — free forever</span>
+          <h2>Ready to build your<br>next circuit?</h2>
+          <p>Launch the interactive simulator right now — no installs, no drivers, and no account required to explore the demo workbench.</p>
           <div class="cta-actions">
-            <a href="/editor" class="btn primary lg" style="text-decoration:none">Launch Simulator Free 🚀</a>
+            <a href="/editor" class="btn primary lg" style="text-decoration:none">Launch Simulator — Free ✦</a>
             <button class="btn lg ghost" data-auth="signup">Create Free Account</button>
           </div>
+          <p class="cta-note">35+ components · C++ & MicroPython · Real-time debugging</p>
         </div>
       </div>
     </div>
@@ -744,7 +727,6 @@
 <script src="/js/sim.js" defer></script>
 <script src="/js/canvas.js" defer></script>
 <script src="/js/editor.js" defer></script>
-<script src="/js/assistant.js" defer></script>
 <script src="/js/app.js" defer></script>
 <script>
   // FAQ accordion interaction

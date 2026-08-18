@@ -30,6 +30,19 @@
     stopAll() { for (const k in this.osc) { try { this.osc[k].o.stop(); } catch { } delete this.osc[k]; } }
   };
 
+  /* UART pins per board family (primary UART0) */
+  function uartPinsOf(type) {
+    const d = CS.defs[type] || {};
+    const ids = d.pins ? d.pins.map(p => p.id) : [];
+    if (ids.includes('TX') && ids.includes('RX')) return { tx: 'TX', rx: 'RX' };
+    if (ids.includes('GP0') && ids.includes('GP1')) return { tx: 'GP0', rx: 'GP1' }; // Pico family UART0
+    if (type === 'esp32') return { tx: '1', rx: '3' }; // labeled TX0/RX0
+    if (ids.includes('D1') && ids.includes('D0')) return { tx: 'D1', rx: 'D0' }; // AVR boards
+    if (ids.includes('14') && ids.includes('15')) return { tx: '14', rx: '15' }; // RPi BCM
+    return null;
+  }
+  CS.uartPinsOf = uartPinsOf;
+
   /* ================= engine ================= */
   class Engine {
     constructor() {
@@ -48,17 +61,62 @@
       this.frameReq = null;
       this.lastFrameTs = 0;
       this.gpioMode = 'BCM';
+      this.mcus = [];
+      this.mcu = null;
+      this.boards = [];
+      this.debugBoardId = null; // board that owns breakpoints/step/exec-line (active editor tab)
     }
     on(ev, fn) { (this.listeners[ev] = this.listeners[ev] || []).push(fn); }
     emit(ev, ...a) { (this.listeners[ev] || []).forEach(f => { try { f(...a); } catch (e) { console.error(e); } }); }
 
     attach(doc) {
       this.doc = doc;
-      this.mcu = doc.components.find(c => (CS.defs[c.type] || {}).mcu) || null;
+      this.mcus = doc.components.filter(c => (CS.defs[c.type] || {}).mcu);
+      this.mcu = this.mcus[0] || null; // primary board (legacy callers)
+      this.boards = this.boards || [];
       doc.components.forEach(c => { c.state = {}; });
     }
 
-    resolvePinId(p) {
+    // A display tag like "Uno R3 2" (index only when more than one board)
+    boardTag(comp) {
+      const name = (CS.defs[comp.type] || {}).name || comp.type;
+      return this.mcus && this.mcus.length > 1 ? `${name} ${this.mcus.indexOf(comp) + 1}` : name;
+    }
+    boardNode(board, pin) {
+      return board ? this.pinNode(board.comp, this.resolvePinId(pin, board)) : this.mcuNode(pin);
+    }
+    vccOf(board) {
+      const def = board && CS.defs[board.comp.type];
+      return def ? (def.vcc || 5) : (board ? 5 : this.vcc);
+    }
+    adcMaxOf(board) {
+      const def = board && CS.defs[board.comp.type];
+      return def ? ('esp,rp'.includes(def.family) ? 4095 : 1023) : this.adcMax;
+    }
+    rxFor(compId) { const b = (this.boards || []).find(x => x.comp.id === compId); return b || null; }
+    exportsFor(compId) { const b = this.rxFor(compId); return b ? b.exports : this.exports; }
+    // UART bridge — a serial byte stream from `fromBoard` lands in the RX buffer of any
+    // other board whose RX pin shares the TX net (TX→RX across a wire).
+    routeUart(fromBoard, text) {
+      if (!fromBoard || !this.netRoot) return;
+      const uart = uartPinsOf(fromBoard.comp.type);
+      if (!uart) return;
+      const root = this.netRoot.get(fromBoard.comp.id + '.' + uart.tx);
+      if (!root) return;
+      for (const b of this.boards) {
+        if (b === fromBoard) continue;
+        const u2 = uartPinsOf(b.comp.type);
+        if (!u2 || this.netRoot.get(b.comp.id + '.' + u2.rx) !== root) continue;
+        b.serialRx += text;
+        if (fromBoard.baud && b.baud && fromBoard.baud !== b.baud && !b._baudWarned) {
+          b._baudWarned = true;
+          this.serialEvents.push({ t: this.now, text: `⚠️ UART baud mismatch: ${fromBoard.tag} @${fromBoard.baud} → ${b.tag} @${b.baud}`, sys: true });
+          this.emit('serial');
+        }
+      }
+    }
+
+    resolvePinId(p, board) {
       if (p == null) return null;
       if (typeof p === 'string') {
         if (/^A\d/.test(p) || /^GP/.test(p)) return p;
@@ -66,11 +124,11 @@
         p = parseInt(p, 10);
       }
       if (isNaN(p)) return null;
-      const t = this.mcu ? this.mcu.type : 'uno';
+      const t = board ? board.comp.type : (this.mcu ? this.mcu.type : 'uno');
       if (t === 'esp8266') return (CS.defs.esp8266.gpioMap || {})[p] || 'D1';
       if (t === 'pico') return 'GP' + p;
       if (t === 'esp32') return String(p);
-      if (t.startsWith('rpi')) return String(this.gpioMode === 'BOARD' ? (RPI_BOARD_TO_BCM[p] ?? p) : p);
+      if (t.startsWith('rpi')) { const gm = board ? board.gpioMode : this.gpioMode; return String(gm === 'BOARD' ? (RPI_BOARD_TO_BCM[p] ?? p) : p); }
       if (t === 'mega') return p < 54 ? 'D' + p : 'A' + (p - 54);
       return p < 14 ? 'D' + p : 'A' + (p - 14);
     }
@@ -84,17 +142,21 @@
       const members = this.netMembers.get(root) || [];
       for (const m of members) {
         const [cid, pid] = m.split('.');
-        if (this.mcu && cid === this.mcu.id) { const ch = this.channels[pid]; if (ch && ch.out) return ch; }
+        for (const b of (this.boards || [])) {
+          if (b.channels && cid === b.comp.id) { const ch = b.channels[pid]; if (ch && ch.out) return ch; }
+        }
+        // channels of a board inspected before sim start (editor probes)
+        if (!(this.boards && this.boards.length) && this.mcu && this.channels && cid === this.mcu.id) { const ch = this.channels[pid]; if (ch && ch.out) return ch; }
       }
       return null;
     }
 
     /* ---------- compile ---------- */
-    compile(code, lang) {
+    compile(code, lang, board) {
       this.errors = [];
       const tr = CS.transpile(code, lang);
       if (!tr.ok) return { error: { line: 0, msg: tr.error.msg } };
-      const RT = CS.runtime(this);
+      const RT = CS.runtime(this, board || null);
       const names = Object.keys(RT).join(',');
       const body =
         `const {${names}} = rt;\n` +
@@ -103,8 +165,8 @@
         `\n;return __exports();`;
       try {
         const factory = new Function('rt', 'return (function*(){\n' + body + '\n})');
-        this.progFactory = factory;
-        this.rt = RT;
+        if (board) { board.progFactory = factory; board.rt = RT; }
+        else { this.progFactory = factory; this.rt = RT; } // legacy mirror
         return { ok: true };
       } catch (e) {
         let line = 0;
@@ -114,48 +176,103 @@
       }
     }
 
-    start(code, lang) {
-      const r = this.compile(code, lang);
-      if (r.error) { this.emit('compileError', r.error); return false; }
+    /* Accepts either (code, lang) for the primary board, or a sketch map
+       { [mcuCompId]: { code, lang } } spanning every board on the bench.
+       Every board gets its own program, channels and serial buffers —
+       they run in parallel over one shared net solver, and UART TX bytes
+       route across wires into the RX buffer of any board listening there. */
+    start(codeOrMap, lang) {
+      const sketchMap = (codeOrMap && typeof codeOrMap === 'object') ? codeOrMap : null;
+      if (this.frameReq) { cancelAnimationFrame(this.frameReq); this.frameReq = null; }
       this.attach(this.doc);
+      if (!this.mcus.length) {
+        this.emit('compileError', { line: 0, msg: 'Add a microcontroller board before running — your code needs a brain!' });
+        return false;
+      }
+      // one runtime record per board (parallel engines sharing the nets)
+      this.boards = this.mcus.map((comp, i) => {
+        const sk = sketchMap ? (sketchMap[comp.id] || null) : (i === 0 ? { code: codeOrMap, lang } : null);
+        return {
+          comp, tag: this.boardTag(comp),
+          lang: sk ? (sk.lang || 'cpp') : 'cpp',
+          code: sk ? String(sk.code || '') : '',
+          channels: {}, toneStop: {}, serialRx: '', interrupts: [], gpioMode: 'BCM',
+          holdUntil: 0, line: 0, stage: 'setup', exports: {},
+          cur: null, curDone: false, topLevel: false,
+          progFactory: null, rt: null, prog: null, baud: 0, empty: false, _baudWarned: false
+        };
+      });
+      // compile all sketches up-front — report the first error with its board tag
+      this.errors = [];
+      for (const b of this.boards) {
+        if (!b.code.trim()) { b.empty = true; continue; }
+        const r = this.compile(b.code, b.lang, b);
+        if (r.error) {
+          const hadMany = this.boards.length > 1;
+          this.boards = [];
+          this.emit('compileError', { line: r.error.line, comp: b.comp.id, board: b.tag, msg: (hadMany ? `[${b.tag}] ` : '') + r.error.msg });
+          return false;
+        }
+      }
       this.state = 'running';
       this.now = 0; this.holdUntil = 0; this.line = 0;
       this.serialEvents = [{ t: 0, text: '— simulation started —', sys: true }];
       this.samples.clear();
-      this.channels = {};
-      this.interrupts = [];
-      this.toneStop = {};
       this.dynLinks = [];
       this.drives = [];
       this.marked = new Set();
       this.errorLine = 0;
+      if (!this.debugBoardId || !this.boards.some(b => b.comp.id === this.debugBoardId)) {
+        this.debugBoardId = this.boards[0].comp.id;
+      }
       CS.audio.init();
-      // boot the program — C++ sketches return {setup, loop} immediately;
+      // boot each program — C++ sketches return {setup, loop} immediately;
       // MicroPython-style scripts run top-level: they BECOME the live program
-      try {
-        this.prog = this.progFactory(this.rt)();
-        this.topLevel = false;
-        let r = this.prog.next(), guard = 0;
-        while (!r.done && guard++ < 200000) {
-          const v = r.value;
-          if (v && typeof v === 'object' && v.d != null) { // top-level sleep → script is the program
-            this.topLevel = true;
-            this.holdUntil = this.now + Math.max(0, +v.d || 0);
-            break;
-          }
-          r = this.prog.next();
-        }
-        if (!this.topLevel) this.exports = r.done ? (r.value || {}) : {};
-        if (guard >= 200000) { this.topLevel = true; this.holdUntil = this.now + 1; }
-      } catch (e) { this.crash(e); return false; }
-      this.stage = this.topLevel ? 'loop' : 'setup';
-      this.cur = this.topLevel ? this.prog : (this.exports.setup ? this.exports.setup() : null);
-      this.curDone = false;
+      for (const b of this.boards) {
+        if (b.empty) continue;
+        try { this.bootBoard(b); } catch (e) { this.crash(e, b); return false; }
+      }
+      // legacy mirrors → primary board (single-board callers & probes)
+      const primary = this.boards[0];
+      this.channels = primary.channels;
+      this.interrupts = primary.interrupts;
+      this.toneStop = primary.toneStop;
+      this.mirrorPrimary(primary);
       this.lastFrameTs = performance.now();
       const loop = () => { this.frameReq = requestAnimationFrame(loop); this.frame(); };
       loop();
       this.emit('state', this.state);
       return true;
+    }
+
+    bootBoard(b) {
+      b.prog = b.progFactory(b.rt)();
+      b.topLevel = false;
+      let r = b.prog.next(), guard = 0;
+      while (!r.done && guard++ < 200000) {
+        const v = r.value;
+        if (v && typeof v === 'object' && v.d != null) { // top-level sleep → script is the program
+          b.topLevel = true;
+          b.holdUntil = this.now + Math.max(0, +v.d || 0);
+          break;
+        }
+        r = b.prog.next();
+      }
+      if (!b.topLevel) b.exports = r.done ? (r.value || {}) : {};
+      if (guard >= 200000) { b.topLevel = true; b.holdUntil = this.now + 1; }
+      b.stage = b.topLevel ? 'loop' : 'setup';
+      b.cur = b.topLevel ? b.prog : (b.exports.setup ? b.exports.setup() : null);
+      b.curDone = false;
+    }
+
+    // legacy single-board fields mirror one board (usually the primary)
+    mirrorPrimary(b) {
+      if (!b) return;
+      this.prog = b.prog; this.rt = b.rt || this.rt; this.progFactory = b.progFactory || this.progFactory;
+      this.topLevel = b.topLevel; this.stage = b.stage;
+      this.cur = b.cur; this.curDone = b.curDone;
+      this.holdUntil = b.holdUntil; this.line = b.line;
+      this.exports = b.exports; this.serialRx = b.serialRx;
     }
     pause() { if (this.state === 'running') { this.state = 'paused'; this.emit('state', this.state); } }
     resume() { if (this.state === 'paused') { this.state = 'running'; this.lastFrameTs = performance.now(); this.emit('state', this.state); } }
@@ -163,6 +280,7 @@
       this.state = 'idle';
       if (this.frameReq) cancelAnimationFrame(this.frameReq);
       this.frameReq = null;
+      this.boards = [];
       CS.audio.stopAll();
       if (this.doc) this.doc.components.forEach(c => { c.state = {}; });
       this.serialEvents && this.serialEvents.push({ t: this.now, text: '— simulation stopped —', sys: true });
@@ -176,42 +294,48 @@
       if (this.state === 'paused') { this.state = 'running'; this.frame(true); this.state = 'paused'; this.emit('state', this.state); }
     }
 
-    crash(e) {
+    crash(e, board) {
       this.state = 'error';
-      this.errorLine = this.line;
-      this.emit('runtimeError', { line: this.line, msg: e.message });
-      console.error('sim crash @line', this.line, e);
+      const line = board ? board.line : this.line;
+      this.errorLine = line;
+      this.emit('runtimeError', {
+        line, msg: e.message,
+        comp: board ? board.comp.id : (this.mcu ? this.mcu.id : null),
+        board: board ? board.tag : undefined
+      });
+      console.error('sim crash @line', line, e);
     }
 
     /* ---------- scheduler ---------- */
-    advanceGenerator(budgetStmts) {
+    advanceBoard(b, budgetStmts) {
       let stmts = 0, restarts = 0;
       while (stmts < budgetStmts) {
-        if (!this.cur || this.curDone) {
-          if (this.stage === 'setup') { this.stage = 'loop'; restarts = 0; }
-          if (this.stage === 'loop' && (this.exports && this.exports.loop || this.topLevel)) {
-            if (++restarts > 400) { this.holdUntil = this.now + 1; return 'waiting'; } // empty loop() guard
-            this.cur = this.topLevel ? this.progFactory(this.rt)() : this.exports.loop();
-            this.curDone = false;
+        if (!b.cur || b.curDone) {
+          if (b.stage === 'setup') { b.stage = 'loop'; restarts = 0; }
+          if (b.stage === 'loop' && ((b.exports && b.exports.loop) || b.topLevel)) {
+            if (++restarts > 400) { b.holdUntil = this.now + 1; return 'waiting'; } // empty loop() guard
+            b.cur = b.topLevel ? b.progFactory(b.rt)() : b.exports.loop();
+            b.curDone = false;
           }
           else return 'done';
         }
         let r;
-        try { r = this.cur.next(); }
-        catch (e) { this.crash(e); return 'error'; }
-        if (r.done) { this.curDone = true; if (this.stage === 'setup') this.holdUntil = this.now; continue; }
+        try { r = b.cur.next(); }
+        catch (e) { this.crash(e, b); return 'error'; }
+        if (r.done) { b.curDone = true; if (b.stage === 'setup') b.holdUntil = this.now; continue; }
         const v = r.value;
         if (v && typeof v === 'object') {
           if (v.d != null) {
-            this.holdUntil = Math.max(this.holdUntil, this.now) + Math.max(0, +v.d || 0);
+            b.holdUntil = Math.max(b.holdUntil, this.now) + Math.max(0, +v.d || 0);
             return 'waiting';
           }
           if (v.l != null) {
-            this.line = v.l; stmts++;
-            this.emit('line', v.l);
-            if (this.breakpoints.has(v.l) || this.stepArmed) {
+            b.line = v.l; stmts++;
+            const dbg = !this.debugBoardId || b.comp.id === this.debugBoardId;
+            if (dbg) this.emit('line', v.l, b.comp.id);
+            if (dbg && (this.breakpoints.has(v.l) || this.stepArmed)) {
               this.stepArmed = false;
-              this.holdUntil = this.now;
+              b.holdUntil = this.now;
               this.pause();
               return 'break';
             }
@@ -219,8 +343,14 @@
         }
       }
       // ran out of budget without yielding delay → cooperative 1ms nap
-      this.holdUntil = this.now + 1;
+      b.holdUntil = this.now + 1;
       return 'waiting';
+    }
+
+    // legacy single-board entry point (primary board)
+    advanceGenerator(budgetStmts) {
+      const b = (this.boards || [])[0];
+      return b ? this.advanceBoard(b, budgetStmts) : 'done';
     }
 
     frame(single) {
@@ -232,17 +362,24 @@
 
       this.now += dt;
 
-      // physics at frame boundary; resume code only when its delay (if any) has elapsed
+      // physics at frame boundary; resume each board whose delay (if any) has elapsed
       let guard = 0;
       do {
         this.pipeline();
         if (this.state !== 'running') break;
-        if (this.holdUntil > this.now) break;            // code is "asleep" in delay()
-        const status = this.advanceGenerator(single ? 1 : 8000);
-        if (status !== 'waiting' || this.state !== 'running') break;
-        if (this.holdUntil > this.now) break;
+        const awake = (this.boards || []).filter(b => !b.empty && b.holdUntil <= this.now);
+        if (!awake.length) break;                        // every board asleep in delay()
+        let more = false;
+        for (const b of awake) {
+          this.advanceBoard(b, single ? 1 : 8000);
+          if (this.state !== 'running') break;
+          if (b === this.boards[0]) this.mirrorPrimary(b);
+          if (b.holdUntil <= this.now) more = true;      // 0-length delay → keep cooperating
+        }
+        if (this.state !== 'running') break;
+        if (!more) break;
         guard++;
-      } while (guard < 40 && this.holdUntil <= this.now && this.state === 'running');
+      } while (guard < 40 && this.state === 'running');
 
       this.sampleScope();
       this.flushMarked();
@@ -257,28 +394,36 @@
       this.drives = [];
       this.dynLinks = [];
       const api = this.componentApi(true);
-      // MCU channels → drivers
-      if (this.mcu) this.applyMcu();
+      // MCU channels → drivers (every board on the bench)
+      this.applyBoards();
       for (const c of comps) { const d = CS.defs[c.type]; if (d && d.tick) { try { d.tick(c, api, 1, this); } catch { /* tick resilience */ } } }
       this.solveNets(api);
       // sensors read nets
       for (const c of comps) { const d = CS.defs[c.type]; if (d && d.sense) { try { d.sense(c, api, 1); } catch { } } }
       this.checkInterrupts();
-      // tone stop scheduling
-      for (const pid in this.toneStop) { if (this.now >= this.toneStop[pid]) { delete this.toneStop[pid]; const ch = this.channels[pid]; if (ch && ch.type === 'tone') { ch.out = false; ch.dead = true; } } }
+      // tone stop scheduling (per board)
+      for (const b of (this.boards && this.boards.length ? this.boards : [{ toneStop: this.toneStop || {}, channels: this.channels || {} }])) {
+        for (const pid in b.toneStop) { if (this.now >= b.toneStop[pid]) { delete b.toneStop[pid]; const ch = b.channels[pid]; if (ch && ch.type === 'tone') { ch.out = false; ch.dead = true; } } }
+      }
     }
 
-    applyMcu() {
-      const def = CS.defs[this.mcu.type];
-      this.channels = this.channels || {};
+    applyBoards() {
+      if (this.boards && this.boards.length) { for (const b of this.boards) this.applyBoardChannels(b); }
+      else if (this.mcu) this.applyMcu(); // pre-start editor probes
+    }
+
+    applyBoardChannels(board) {
+      const mcu = board.comp;
+      const def = CS.defs[mcu.type];
+      const channels = board.channels = board.channels || {};
       for (const p of def.pins) {
-        const node = this.pinNode(this.mcu, p.id);
+        const node = this.pinNode(mcu, p.id);
         if (p.kind === 'ground') { this.drives.push({ node, v: 0, strength: 'strong' }); continue; }
         if (p.kind === 'power') {
           const v = p.id.startsWith('3V3') || p.id.includes('3V3') ? 3.3 : p.id === 'VIN' ? 5 : p.id.startsWith('5V') ? 5 : p.id === 'VBUS' ? 5 : p.id === 'VSYS' ? 5 : p.id === 'EN' ? 3.3 : def.vcc;
           this.drives.push({ node, v, strength: 'strong' }); continue;
         }
-        const ch = this.channels[p.id];
+        const ch = channels[p.id];
         if (!ch) continue;
         if (!ch.out) { // input
           if (ch.mode === 'pull') this.drives.push({ node, v: def.vcc, strength: 'weak' });
@@ -289,6 +434,13 @@
         else if (ch.type === 'tone') this.drives.push({ node, v: def.vcc * 0.5, strength: 'strong' });
         else if (ch.type === 'servo') this.drives.push({ node, v: 0.2, strength: 'strong' });
       }
+    }
+
+    // legacy single-board path (probes before/without a run)
+    applyMcu() {
+      if (!this.mcu) return;
+      this.channels = this.channels || {};
+      this.applyBoardChannels({ comp: this.mcu, channels: this.channels });
     }
 
     solveNets() {
@@ -393,16 +545,21 @@
     }
 
     checkInterrupts() {
-      if (!this.interrupts || !this.interrupts.length) return;
-      for (const inr of this.interrupts) {
-        const node = this.mcuNode(inr.pin);
-        const st = this.componentApi().state(node);
-        const hi = st === 'hi' ? 1 : 0;
-        const fire = (inr.mode === 'CHANGE' && hi !== inr.last) || (inr.mode === 'RISING' && hi && !inr.last) || (inr.mode === 'FALLING' && !hi && inr.last);
-        if (fire && inr.last != null) {
-          try { const g = inr.fn(); let r = g.next(), g2 = 0; while (!r.done && g2++ < 20000) r = g.next(); } catch (e) { this.crash(e); }
+      const boards = (this.boards && this.boards.length) ? this.boards
+        : (this.interrupts && this.interrupts.length ? [{ comp: this.mcu, interrupts: this.interrupts }] : []);
+      for (const b of boards) {
+        if (!b.interrupts || !b.interrupts.length) continue;
+        for (const inr of b.interrupts) {
+          const node = this.boardNode(b.comp ? b : null, inr.pin);
+          if (!node) continue;
+          const st = this.componentApi().state(node);
+          const hi = st === 'hi' ? 1 : 0;
+          const fire = (inr.mode === 'CHANGE' && hi !== inr.last) || (inr.mode === 'RISING' && hi && !inr.last) || (inr.mode === 'FALLING' && !hi && inr.last);
+          if (fire && inr.last != null) {
+            try { const g = inr.fn(); let r = g.next(), g2 = 0; while (!r.done && g2++ < 20000) r = g.next(); } catch (e) { this.crash(e, b); }
+          }
+          inr.last = hi;
         }
-        inr.last = hi;
       }
     }
 
@@ -430,49 +587,55 @@
   }
 
   /* ================= runtime library ================= */
-  CS.runtime = function (eng) {
-    const vccOf = () => eng.vcc;
+  CS.runtime = function (eng, board) {
+    const B = board || null; // board this program runs on (null = legacy single-board)
+    const chanMap = () => (B ? B.channels : (eng.channels = eng.channels || {}));
+    const rxBuf = () => (B ? B.serialRx : eng.serialRx);
+    const setRx = s => { if (B) B.serialRx = s; else eng.serialRx = s; };
+    const vccOf = () => eng.vccOf(B);
+    const adcMaxOf = () => eng.adcMaxOf(B);
     const serialLine = (args, nl) => {
       const text = args.map(a => a === undefined ? 'undefined' : (a === null ? 'null' : String(a))).join(' ');
-      eng.serialEvents.push({ t: eng.now, text, nl: nl !== false });
+      eng.serialEvents.push({ t: eng.now, text, nl: nl !== false, comp: B ? B.comp.id : undefined, board: B ? B.tag : undefined });
+      if (B) eng.routeUart(B, text + (nl !== false ? '\n' : ''));
       eng.emit('serial');
     };
     const Serial = {
-      begin() { }, end() { },
+      begin(baud) { if (B) B.baud = baud || 9600; }, end() { },
       print: (...a) => serialLine(a, false),
       println: (...a) => serialLine(a, true),
       write: (...a) => serialLine(a, false),
-      available: () => eng.serialRx.length,
-      read: () => { const ch = eng.serialRx.charCodeAt(0); eng.serialRx = eng.serialRx.slice(1); return isNaN(ch) ? -1 : ch; },
-      readString: () => { const s = eng.serialRx; eng.serialRx = ''; return s; },
-      peek: () => eng.serialRx.length ? eng.serialRx.charCodeAt(0) : -1,
-      parseInt: () => { const m = eng.serialRx.match(/-?\d+/); if (m) { eng.serialRx = eng.serialRx.slice(m.index + m[0].length); return parseInt(m[0]); } return 0; },
+      available: () => rxBuf().length,
+      read: () => { const s = rxBuf(); const c = s.charCodeAt(0); setRx(s.slice(1)); return isNaN(c) ? -1 : c; },
+      readString: () => { const s = rxBuf(); setRx(''); return s; },
+      peek: () => { const s = rxBuf(); return s.length ? s.charCodeAt(0) : -1; },
+      parseInt: () => { const s = rxBuf(); const m = s.match(/-?\d+/); if (m) { setRx(s.slice(m.index + m[0].length)); return parseInt(m[0]); } return 0; },
       flush() { }
     };
 
-    const ch = pin => { const id = eng.resolvePinId(pin); if (!id) return null; return eng.channels[id] = eng.channels[id] || { out: false, v: 0, duty: 0, mode: 'in', type: 'digital' }; };
+    const ch = pin => { const id = eng.resolvePinId(pin, B); if (!id) return null; const m = chanMap(); return m[id] = m[id] || { out: false, v: 0, duty: 0, mode: 'in', type: 'digital' }; };
 
     const firstOf = type => eng.doc.components.find(c => c.type === type);
     const pinMode = (pin, mode) => { const c = ch(pin); if (!c) return; c.out = mode === 'OUTPUT' || mode === 1; c.mode = mode === 'INPUT_PULLUP' || mode === 2 ? 'pull' : 'in'; if (c.out && c.type === 'digital') c.v = 0; };
     const digitalWrite = (pin, v) => { const c = ch(pin); if (!c) return; c.out = true; c.type = 'digital'; c.v = v ? 1 : 0; };
     const digitalRead = pin => {
       const c = ch(pin); if (c && c.out) return c.v ? 1 : 0;
-      const node = eng.mcuNode(pin); if (!node) return 0;
+      const node = eng.boardNode(B, pin); if (!node) return 0;
       const st = eng.componentApi().state(node);
       if (st === 'hi') return 1; if (st === 'lo') return 0;
       return c && c.mode === 'pull' ? 1 : 0;
     };
     const analogRead = pin => {
-      const node = eng.mcuNode(pin); if (!node) return 0;
+      const node = eng.boardNode(B, pin); if (!node) return 0;
       let v = eng.componentApi().volts(node);
       if (v == null) { v = 0; }
-      return clamp(Math.round(v / vccOf() * eng.adcMax), 0, eng.adcMax);
+      return clamp(Math.round(v / vccOf() * adcMaxOf()), 0, adcMaxOf());
     };
     const analogWrite = (pin, duty) => { const c = ch(pin); if (!c) return; c.out = true; c.type = 'pwm'; c.duty = clamp(duty / 255, 0, 1); };
-    const tone = (pin, freq, dur) => { const c = ch(pin); if (!c) return; c.out = true; c.type = 'tone'; c.freq = freq; if (dur) eng.toneStop[eng.resolvePinId(pin)] = eng.now + dur; };
+    const tone = (pin, freq, dur) => { const c = ch(pin); if (!c) return; c.out = true; c.type = 'tone'; c.freq = freq; if (dur) (B ? B.toneStop : (eng.toneStop = eng.toneStop || {}))[eng.resolvePinId(pin, B)] = eng.now + dur; };
     const noTone = pin => { const c = ch(pin); if (c && c.type === 'tone') { c.out = false; c.dead = true; } };
     const pulseIn = (pin, level, timeout) => {
-      const node = eng.mcuNode(pin);
+      const node = eng.boardNode(B, pin);
       const us = eng.doc.components.find(c => c.type === 'ultrasonic');
       if (us && eng.netRoot && eng.netRoot.get(us.id + '.ECHO') === eng.netRoot.get(node)) {
         return Math.round(us.props.dist * 58.31 + 20);
@@ -580,7 +743,7 @@
     class ADC {
       constructor(pinObj) { this.pin = pinObj instanceof Pin ? pinObj.n : pinObj; }
       read() { return analogRead(this.pin); }
-      read_u16() { return Math.round(analogRead(this.pin) * 65535 / eng.adcMax); }
+      read_u16() { return Math.round(analogRead(this.pin) * 65535 / adcMaxOf()); }
       atten() { } width() { }
     }
     class PWM {
@@ -593,7 +756,7 @@
     /* --- RPi.GPIO shim --- */
     const GPIO = {
       BCM: 'BCM', BOARD: 'BOARD', OUT: 'OUTPUT', IN: 'INPUT', PUD_UP: 'PUD_UP', HIGH: 1, LOW: 0,
-      setmode(mode) { if (mode === 'BOARD' || mode === GPIO.BOARD) eng.gpioMode = 'BOARD'; else eng.gpioMode = 'BCM'; }, setwarnings() { }, cleanup() { eng.channels = {}; },
+      setmode(mode) { const gm = (mode === 'BOARD' || mode === GPIO.BOARD) ? 'BOARD' : 'BCM'; if (B) B.gpioMode = gm; else eng.gpioMode = gm; }, setwarnings() { }, cleanup() { const m = chanMap(); for (const k in m) delete m[k]; },
       setup(pin, mode, pud) { pinMode(pin, mode === 'OUTPUT' ? 'OUTPUT' : pud === 'PUD_UP' ? 'INPUT_PULLUP' : 'INPUT'); },
       output(pin, v) { digitalWrite(pin, v); },
       input(pin) { return digitalRead(pin); },
@@ -617,7 +780,7 @@
       HIGH: 1, LOW: 0, INPUT: 'INPUT', OUTPUT: 'OUTPUT', INPUT_PULLUP: 'INPUT_PULLUP',
       CHANGE: 'CHANGE', RISING: 'RISING', FALLING: 'FALLING', DHT11: 11, DHT22: 22, DHT21: 21,
       A0: 14, A1: 15, A2: 16, A3: 17, A4: 18, A5: 19, A6: 20, A7: 21,
-      LED_BUILTIN: eng.mcu ? (eng.mcu.type === 'esp32' ? 2 : eng.mcu.type === 'esp8266' ? 2 : eng.mcu.type === 'pico' ? 25 : 13) : 13,
+      LED_BUILTIN: (() => { const t = B ? B.comp.type : (eng.mcu ? eng.mcu.type : ''); return t === 'esp32' || t === 'esp8266' ? 2 : t === 'pico' ? 25 : 13; })(),
       // core
       pinMode, digitalWrite, digitalRead, analogRead, analogWrite, analogReference: () => { },
       millis: () => eng.now | 0, micros: () => (eng.now * 1000) | 0,
@@ -629,7 +792,7 @@
       sin: Math.sin, cos: Math.cos, tan: Math.tan, radians: d => d * Math.PI / 180, degrees: r => r * 180 / Math.PI,
       floor: Math.floor, ceil: Math.ceil, round: Math.round,
       tone, noTone, pulseIn, pulseInLong: pulseIn,
-      attachInterrupt: (i, fn, mode) => { eng.interrupts.push({ pin: i, fn, mode: mode || 'CHANGE', last: null }); },
+      attachInterrupt: (i, fn, mode) => { (B ? B.interrupts : (eng.interrupts = eng.interrupts || [])).push({ pin: i, fn, mode: mode || 'CHANGE', last: null }); },
       detachInterrupt: () => { }, digitalPinToInterrupt: p => p, interrupts: () => { }, noInterrupts: () => { },
       sizeof: x => (Array.isArray(x) ? x.length : 4), word: (a, b) => b === undefined ? a : (a << 8) | b,
       lowByte: x => x & 255, highByte: x => (x >> 8) & 255, bitRead: (x, n) => (x >> n) & 1, bitWrite: (x, n, v) => v ? x | (1 << n) : x & ~(1 << n),

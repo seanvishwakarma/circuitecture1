@@ -696,13 +696,21 @@
       window.addEventListener('pointerup', e => this.onUp(e));
       svg.addEventListener('wheel', e => {
         e.preventDefault();
-        const factor = Math.exp(-e.deltaY * 0.0012);
-        const z = clamp(this.view.z * factor, 0.25, 3);
         const r = svg.getBoundingClientRect();
-        const mx = e.clientX - r.left, my = e.clientY - r.top;
-        this.view.x = mx - (mx - this.view.x) * (z / this.view.z);
-        this.view.y = my - (my - this.view.y) * (z / this.view.z);
-        this.view.z = z;
+        if (e.ctrlKey || e.metaKey) {
+          // Ctrl/Cmd+scroll = zoom (trackpad pinch also reports ctrlKey) — anchored at cursor
+          const factor = Math.exp(-e.deltaY * 0.0012);
+          const z = clamp(this.view.z * factor, 0.25, 3);
+          const mx = e.clientX - r.left, my = e.clientY - r.top;
+          this.view.x = mx - (mx - this.view.x) * (z / this.view.z);
+          this.view.y = my - (my - this.view.y) * (z / this.view.z);
+          this.view.z = z;
+        } else {
+          // plain scroll = pan (two-finger trackpad scroll lands here); Shift+scroll pans sideways
+          const step = e.deltaMode === 1 ? 16 : 1; // line-mode mice (Firefox) → px
+          if (e.shiftKey) { this.view.x -= e.deltaY * step; this.view.y -= e.deltaX * step; }
+          else { this.view.x -= e.deltaX * step; this.view.y -= e.deltaY * step; }
+        }
         requestAnimationFrame(() => { this.applyView(); CS.bus.emit('viewChanged'); });
       }, { passive: false });
       svg.addEventListener('contextmenu', e => { e.preventDefault(); if (e.target === svg || e.target === this.gridRect) this.canvasMenu(e); });

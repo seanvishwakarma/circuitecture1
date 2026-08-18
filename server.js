@@ -1,5 +1,5 @@
 /* CircuitTecture — full-stack IoT & microcontroller circuit simulator
-   Zero-dependency Node server: static hosting + SQLite REST API + WebSocket multiplayer.
+   Zero-dependency Node server: static hosting + SQLite REST API.
    Run:  node server.js   (then open http://localhost:8080) */
 'use strict';
 const http = require('http');
@@ -7,7 +7,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
-const WebSocket = require('ws');
 const db = require('./db');
 
 /* ==================== LOGGER ==================== */
@@ -50,7 +49,7 @@ const RATE = new Map();
 const uid = (n = 10) => crypto.randomBytes(n).toString('base64url');
 const now = () => Date.now();
 
-const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://cdnjs.cloudflare.com; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' ws: wss: https://cdnjs.cloudflare.com; worker-src 'self' blob:; frame-ancestors 'none'";
+const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://cdnjs.cloudflare.com; font-src 'self' data: https://cdnjs.cloudflare.com; connect-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' blob:; frame-ancestors 'none'";
 
 const MAINTENANCE_PAGE = `<!DOCTYPE html>
 <html lang="en">
@@ -244,6 +243,16 @@ function sanitizeComponents(comps) {
     label: c.label || ''
   }));
 }
+function sanitizeSketches(sk) {
+  const out = {};
+  if (sk && typeof sk === 'object' && !Array.isArray(sk)) {
+    for (const [k, v] of Object.entries(sk)) {
+      if (!/^[\w-]{1,48}$/.test(k) || !v || typeof v !== 'object') continue;
+      out[k] = { code: String(v.code || '').slice(0, 200000), lang: v.lang === 'py' ? 'py' : 'cpp' };
+    }
+  }
+  return out;
+}
 function sanitizeWires(wires) {
   return (Array.isArray(wires) ? wires : []).map(w => {
     const out = Object.assign({}, w);
@@ -275,6 +284,7 @@ function projectView(p, viewer, full = false) {
       components: sanitizeComponents(p.components || []),
       wires: sanitizeWires(p.wires || []),
       code: p.code || '',
+      sketches: sanitizeSketches(p.sketches || {}),
       viewport: p.viewport || null
     });
   }
@@ -290,6 +300,20 @@ function canEdit(p, u) {
 function isAdmin(u) { return !!(u && u.role === 'admin' && !u.suspended); }
 function isModerator(u) { return !!(u && (u.role === 'admin' || u.role === 'moderator' || u.role === 'teacher') && !u.suspended); }
 function isTeacher(u) { return !!(u && (u.role === 'admin' || u.role === 'teacher') && !u.suspended); }
+
+// Feature-flag enforcement. An explicit row in feature_flags wins; otherwise
+// fall back to the legacy settings key (admin Settings panel); otherwise the default.
+function flagEnabled(key, settingsKey, defaultOn = true) {
+  try {
+    const flags = db.getFeatureFlags() || {};
+    if (flags[key]) return !!flags[key].enabled;
+  } catch {}
+  if (settingsKey) {
+    const v = db.getSettings()[settingsKey];
+    if (v !== undefined && v !== null) return !(v === false || v === 'false' || v === 0);
+  }
+  return defaultOn;
+}
 
 function requireAdmin(res, u) {
   if (!u) { json(res, { error: 'auth' }, 401); return false; }
@@ -366,7 +390,7 @@ route('POST', '/api/signup', async (req, res) => {
   if (!rateLimit(req, 'signup', settings.rateLimitSignup || CONFIG.RATE_LIMIT_SIGNUP, 10 * 60000)) {
     return json(res, { error: 'Too many signup attempts. Try again shortly.' }, 429);
   }
-  if (settings.signupOpen === false) return json(res, { error: 'Signups are currently closed.' }, 403);
+  if (!flagEnabled('signupOpen', 'signupOpen')) return json(res, { error: 'Signups are currently closed.' }, 403);
 
   const b = await parseBody(req);
   const name = String(b.name || '').trim();
@@ -384,7 +408,7 @@ route('POST', '/api/signup', async (req, res) => {
     name,
     email,
     pass: hashPass(pass),
-    role: 'user',
+    role: (b.role === 'teacher' && flagEnabled('teacherSignup', 'teacherSignup')) ? 'teacher' : 'user',
     avatar: '🚀',
     createdAt: now()
   });
@@ -492,6 +516,7 @@ route('POST', '/api/projects', async (req, res, u) => {
     board: b.board || 'uno',
     lang: b.lang || 'cpp',
     code: b.code || '',
+    sketches: sanitizeSketches(b.sketches),
     components: b.components || [],
     wires: b.wires || [],
     public: false,
@@ -519,13 +544,13 @@ route('PUT', '/api/projects/:id', async (req, res, u, m) => {
   if (b.board !== undefined) changes.board = String(b.board);
   if (b.lang !== undefined) changes.lang = String(b.lang);
   if (b.code !== undefined) changes.code = String(b.code);
+  if (b.sketches !== undefined) changes.sketches = sanitizeSketches(b.sketches);
   if (b.components !== undefined) changes.components = sanitizeComponents(b.components);
   if (b.wires !== undefined) changes.wires = sanitizeWires(b.wires);
   if (b.viewport !== undefined) changes.viewport = b.viewport;
 
-  const settings = db.getSettings();
   if (b.public !== undefined) {
-    if (b.public && settings.communityEnabled === false && u.role !== 'admin') {
+    if (b.public && !flagEnabled('communityEnabled', 'communityEnabled') && u.role !== 'admin') {
       return json(res, { error: 'Community publishing is disabled.' }, 403);
     }
     changes.public = !!b.public;
@@ -546,6 +571,7 @@ route('DELETE', '/api/projects/:id', async (req, res, u, m) => {
 route('POST', '/api/projects/:id/fork', async (req, res, u, m) => {
   if (!u) return json(res, { error: 'auth' }, 401);
   if (!rateLimit(req, 'fork-project', 20, 60000)) return json(res, { error: 'Too many requests' }, 429);
+  if (!flagEnabled('allowForking', 'allowForking')) return json(res, { error: 'Forking is disabled by an administrator.' }, 403);
   const source = db.getProject(m[0]);
   if (!source || !canSee(source, u) || source.forkable === false) return json(res, { error: 'not found' }, 404);
 
@@ -588,6 +614,7 @@ route('POST', '/api/projects/:id/share', async (req, res, u, m) => {
   if (!u) return json(res, { error: 'auth' }, 401);
   const p = db.getProject(m[0]);
   if (!p || !canEdit(p, u)) return json(res, { error: 'not found' }, 404);
+  if (!flagEnabled('allowSharing', 'allowSharing')) return json(res, { error: 'Sharing is disabled by an administrator.' }, 403);
   const b = await parseBody(req);
   if (b && b.off) {
     db.saveProject({ ...p, shareId: null, updatedAt: now() });
@@ -600,6 +627,15 @@ route('POST', '/api/projects/:id/share', async (req, res, u, m) => {
 
 route('POST', '/api/sim/run', async (req, res, u) => {
   if (!u) return json(res, { error: 'auth' }, 401);
+  // lightweight usage counter → admin overview sparklines
+  try {
+    const st = db.getSettings();
+    const day = new Date().toISOString().slice(0, 10);
+    db.updateSettings({
+      simRuns: (st.simRuns || 0) + 1,
+      ['simRuns:' + day]: (st['simRuns:' + day] || 0) + 1
+    });
+  } catch {}
   json(res, { ok: true });
 });
 
@@ -679,35 +715,190 @@ route('GET', '/api/share/:sid', async (req, res, u, m) => {
 /* Classroom / Assignments */
 route('GET', '/api/assignments', async (req, res, u) => {
   if (!u) return json(res, { error: 'auth' }, 401);
-  const rawList = db.getAllAssignments();
-  const list = rawList.map(a => ({
+  let list;
+  if (isTeacher(u)) {
+    list = db.getAssignmentsByOwner(u.id);
+  } else {
+    list = [];
+    const seen = new Set();
+    db.getClassesForStudent(u.id).forEach(c => db.getAssignmentsByClass(c.id).forEach(a => {
+      if (!seen.has(a.id)) { seen.add(a.id); list.push(a); }
+    }));
+  }
+  // legacy global assignments (no class) stay visible to everyone
+  db.getAllAssignments().forEach(a => { if (!a.classId && !list.some(x => x.id === a.id)) list.push(a); });
+  const out = list.map(a => ({
     id: a.id,
     title: a.title,
     brief: a.brief,
     due: a.due,
     rubric: a.rubric,
+    classId: a.classId || null,
+    className: a.classId ? ((db.getClass(a.classId) || {}).name || '(class deleted)') : null,
     owner: pubUser(db.getUser(a.ownerId)),
     mine: a.ownerId === u.id,
     submission: db.getSubmission(a.id, u.id),
     count: db.getSubmissionsForAssignment(a.id).length
-  }));
-  json(res, { assignments: list });
+  })).sort((x, y) => (x.due || Infinity) - (y.due || Infinity));
+  json(res, { assignments: out });
 });
 
 route('POST', '/api/assignments', async (req, res, u) => {
   if (!u || (!isTeacher(u) && !isAdmin(u))) return json(res, { error: 'forbidden' }, 403);
   const b = await parseBody(req);
   if (!b.title) return json(res, { error: 'title required' }, 400);
+  let classId = null;
+  if (b.classId) {
+    const cls = db.getClass(String(b.classId));
+    if (!cls || (cls.ownerId !== u.id && u.role !== 'admin')) return json(res, { error: 'class not found' }, 404);
+    classId = cls.id;
+  }
   const a = db.saveAssignment({
     id: uid(8),
     ownerId: u.id,
+    classId,
     title: String(b.title).slice(0, 100),
     brief: String(b.brief || '').slice(0, 1000),
     due: b.due ? +b.due : null,
     rubric: String(b.rubric || '').slice(0, 1000),
     createdAt: now()
   });
+  audit(u, 'create_assignment', a.id);
   json(res, { assignment: a });
+});
+
+route('DELETE', '/api/assignments/:id', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const a = db.getAssignment(m[0]);
+  if (!a || (a.ownerId !== u.id && u.role !== 'admin')) return json(res, { error: 'not found' }, 404);
+  db.deleteAssignment(a.id);
+  audit(u, 'delete_assignment', a.id);
+  json(res, { ok: true });
+});
+
+route('POST', '/api/assignments/:id/submit', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const a = db.getAssignment(m[0]);
+  if (!a) return json(res, { error: 'not found' }, 404);
+  if (a.classId && !db.isClassMember(a.classId, u.id) && u.role !== 'admin') {
+    return json(res, { error: 'Join the class first to submit here.' }, 403);
+  }
+  const b = await parseBody(req);
+  const proj = db.getProject(String(b.projectId || ''));
+  if (!proj || proj.ownerId !== u.id) return json(res, { error: 'Pick one of your own projects.' }, 400);
+  db.saveSubmission({
+    id: uid(10),
+    assignmentId: a.id,
+    userId: u.id,
+    projectId: proj.id,
+    grade: null,        // resubmission clears the previous grade
+    feedback: '',
+    submittedAt: now()
+  });
+  audit(u, 'submit_assignment', a.id, { projectId: proj.id });
+  json(res, { submission: db.getSubmission(a.id, u.id) });
+});
+
+route('GET', '/api/assignments/:id/submissions', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const a = db.getAssignment(m[0]);
+  if (!a || (a.ownerId !== u.id && u.role !== 'admin')) return json(res, { error: 'not found' }, 404);
+  const subs = db.getSubmissionsForAssignment(a.id).map(sv => ({
+    ...sv,
+    student: pubUser(db.getUser(sv.userId)),
+    project: (pp => pp ? { id: pp.id, name: pp.name, thumb: pp.thumb, updatedAt: pp.updatedAt } : null)(db.getProject(sv.projectId))
+  }));
+  const roster = a.classId ? db.getRoster(a.classId) : [];
+  json(res, { submissions: subs, roster, assignment: a });
+});
+
+route('POST', '/api/assignments/:id/grade', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const a = db.getAssignment(m[0]);
+  if (!a || (a.ownerId !== u.id && u.role !== 'admin')) return json(res, { error: 'not found' }, 404);
+  const b = await parseBody(req);
+  const sv = db.getSubmission(a.id, String(b.userId || ''));
+  if (!sv) return json(res, { error: 'submission not found' }, 404);
+  const grade = (b.grade === null || b.grade === undefined || b.grade === '') ? null : Math.max(0, Math.min(100, +b.grade || 0));
+  db.gradeSubmission(sv.id, grade, String(b.feedback || '').slice(0, 1000));
+  audit(u, 'grade_submission', a.id, { userId: sv.userId, grade });
+  json(res, { ok: true });
+});
+
+/* ---------- Classroom (classes & invite codes) ---------- */
+route('GET', '/api/classes', async (req, res, u) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  let classes;
+  if (isTeacher(u)) {
+    classes = db.getClassesForTeacher(u.id).map(c => ({ id: c.id, name: c.name, code: c.code, members: c.members, createdAt: c.createdAt, role: 'teacher' }));
+  } else {
+    classes = db.getClassesForStudent(u.id).map(c => {
+      const t = pubUser(db.getUser(c.ownerId));
+      return { id: c.id, name: c.name, members: c.members, createdAt: c.createdAt, role: 'student', teacher: t ? t.name : 'Teacher' };
+    });
+  }
+  json(res, { classes });
+});
+
+route('POST', '/api/classes', async (req, res, u) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  if (!isTeacher(u)) return json(res, { error: 'Only teachers can create classes.' }, 403);
+  if (!flagEnabled('classroomEnabled', 'classroomEnabled') && u.role !== 'admin') return json(res, { error: 'Classroom is disabled by an administrator.' }, 403);
+  const b = await parseBody(req);
+  const name = String(b.name || '').trim().slice(0, 80);
+  if (!name) return json(res, { error: 'Class name required' }, 400);
+  if (db.getClassesForTeacher(u.id).length >= 50) return json(res, { error: 'Class limit reached.' }, 403);
+  const ALPH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code;
+  do { code = Array.from({ length: 6 }, () => ALPH[Math.floor(Math.random() * ALPH.length)]).join(''); } while (db.getClassByCode(code));
+  const c = db.createClass({ id: uid(8), name, code, ownerId: u.id, createdAt: now() });
+  audit(u, 'create_class', c.id);
+  json(res, { class: { id: c.id, name: c.name, code: c.code, members: 0, createdAt: c.createdAt, role: 'teacher' } });
+});
+
+route('POST', '/api/classes/join', async (req, res, u) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const b = await parseBody(req);
+  const c = db.getClassByCode(b.code);
+  if (!c) return json(res, { error: 'No class with that code — check the spelling.' }, 404);
+  if (c.ownerId === u.id) return json(res, { error: 'You teach this class already!' }, 400);
+  db.joinClass(c.id, u.id);
+  audit(u, 'join_class', c.id);
+  json(res, { class: { id: c.id, name: c.name } });
+});
+
+route('GET', '/api/classes/:id', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const c = db.getClass(m[0]);
+  if (!c || (c.ownerId !== u.id && u.role !== 'admin')) return json(res, { error: 'not found' }, 404);
+  json(res, {
+    class: { id: c.id, name: c.name, code: c.code, createdAt: c.createdAt },
+    roster: db.getRoster(c.id).map(r => ({ id: r.id, name: r.name, email: r.email, avatar: r.avatar, joinedAt: r.joinedAt }))
+  });
+});
+
+route('POST', '/api/classes/:id/leave', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  db.leaveClass(m[0], u.id);
+  json(res, { ok: true });
+});
+
+route('DELETE', '/api/classes/:id/members/:uid', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const c = db.getClass(m[0]);
+  if (!c || (c.ownerId !== u.id && u.role !== 'admin')) return json(res, { error: 'not found' }, 404);
+  db.leaveClass(c.id, m[1]);
+  audit(u, 'remove_class_member', c.id, { userId: m[1] });
+  json(res, { ok: true });
+});
+
+route('DELETE', '/api/classes/:id', async (req, res, u, m) => {
+  if (!u) return json(res, { error: 'auth' }, 401);
+  const c = db.getClass(m[0]);
+  if (!c || (c.ownerId !== u.id && u.role !== 'admin')) return json(res, { error: 'not found' }, 404);
+  db.deleteClass(c.id);
+  audit(u, 'delete_class', c.id);
+  json(res, { ok: true });
 });
 
 /* Moderation Queue Endpoints */
@@ -777,11 +968,42 @@ route('POST', '/api/custom-components', async (req, res, u) => {
 /* Admin Panel API */
 route('GET', '/api/admin/stats', async (req, res, u) => {
   if (!requireAdmin(res, u)) return;
-  const users = db.countUsers();
-  const projects = db.countProjects();
-  const activeSessions = Object.keys(db.getAllSessions()).length;
-  const stats = { users, projects, activeSessions, uptime: process.uptime() };
-  json(res, { stats, users, projects, activeSessions, uptime: process.uptime() });
+  const allUsers = db.getAllUsers();
+  const allProjects = db.getAllProjects();
+  const sessions = db.getAllSessions();
+  const settings = db.getSettings();
+  const activeSessions = Object.keys(sessions).length;
+  // users holding at least one live session right now
+  const activeUsers = new Set(Object.values(sessions).map(x => x && x.userId).filter(Boolean)).size;
+  const suspended = allUsers.filter(x => x.suspended).length;
+  const publicProjects = allProjects.filter(x => x.public).length;
+  const storageBytes = allProjects.reduce((sum, x) =>
+    sum + JSON.stringify(x.components || []).length + JSON.stringify(x.wires || []).length +
+    (x.code || '').length + JSON.stringify(x.sketches || {}).length, 0);
+  // 14-day activity history: signups from user rows, sims from the sim/run counters
+  const day0 = new Date(); day0.setHours(0, 0, 0, 0);
+  const dayOf = ts => { const d = new Date(ts); return isNaN(d) ? '' : d.toISOString().slice(0, 10); };
+  const activityHistory = [...Array(14)].map((_, i) => {
+    const d = new Date(day0.getTime() - 864e5 * (13 - i));
+    const key = d.toISOString().slice(0, 10);
+    return {
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      day: key,
+      signups: allUsers.filter(x => dayOf(x.createdAt || 0) === key).length,
+      sims: settings['simRuns:' + key] || 0
+    };
+  });
+  const compCounts = {};
+  for (const pr of allProjects) for (const c of (pr.components || [])) compCounts[c.type] = (compCounts[c.type] || 0) + 1;
+  const topComponents = Object.entries(compCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const stats = {
+    users: allUsers.length, projects: allProjects.length,
+    activeSessions, activeUsers, suspended, publicProjects,
+    storageBytes, simRuns: settings.simRuns || 0,
+    activityHistory, topComponents,
+    uptime: process.uptime()
+  };
+  json(res, { stats });
 });
 
 route('GET', '/api/admin/users', async (req, res, u) => {
@@ -817,6 +1039,20 @@ route('DELETE', '/api/admin/users/:id', async (req, res, u, m) => {
   db.deleteUser(m[0]);
   audit(u, 'admin_delete_user', m[0], { mode: b.mode || 'cascade' });
   json(res, { ok: true });
+});
+
+// Force a password reset: generates a one-time temporary password the admin
+// can hand to the user (returned once, never stored in clear text).
+route('POST', '/api/admin/users/:id/reset-password', async (req, res, u, m) => {
+  if (!requireAdmin(res, u)) return;
+  const target = db.getUser(m[0]);
+  if (!target) return json(res, { error: 'User not found' }, 404);
+  if (u.id === m[0]) return json(res, { error: 'Change your own password from account settings.' }, 400);
+  const temp = Array.from({ length: 10 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 55)]).join('');
+  db.updateUser(m[0], { pass: hashPass(temp) });
+  db.deleteSessionsByUserId(m[0]); // force re-login with the new password
+  audit(u, 'admin_reset_password', m[0], { email: target.email });
+  json(res, { ok: true, tempPassword: temp, email: target.email });
 });
 
 route('GET', '/api/admin/settings', async (req, res, u) => {
@@ -864,6 +1100,24 @@ route('GET', '/api/admin/audit', async (req, res, u) => {
   if (!requireAdmin(res, u)) return;
   const logs = db.getAuditLogs(100, 0);
   json(res, { logs });
+});
+
+// Full audit-trail CSV download (powers the admin "Export Audit" quick action)
+route('GET', '/api/admin/export/audit', async (req, res, u) => {
+  if (!requireAdmin(res, u)) return;
+  const logs = db.getAuditLogs(10000, 0) || [];
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const lines = [['Timestamp', 'User ID', 'Email', 'Action', 'Target', 'Details', 'Admin (impersonator)'].map(q).join(',')];
+  for (const l of logs) {
+    const details = typeof l.details === 'string' ? l.details : JSON.stringify(l.details || '');
+    lines.push([new Date(l.ts || 0).toISOString(), l.userId || '', l.userEmail || '', l.action, l.target, details, l.adminUid || ''].map(q).join(','));
+  }
+  audit(u, 'admin_export_audit', 'audit_log', { rows: logs.length });
+  res.writeHead(200, {
+    'content-type': 'text/csv; charset=utf-8',
+    'content-disposition': 'attachment; filename="audit-' + new Date().toISOString().slice(0, 10) + '.csv"'
+  });
+  res.end('\ufeff' + lines.join('\n'));
 });
 
 route('POST', '/api/admin/db/backup', async (req, res, u) => {
@@ -944,6 +1198,7 @@ route('PUT', '/api/admin/projects/:id', async (req, res, u, m) => {
   if (b.components !== undefined) changes.components = b.components;
   if (b.wires !== undefined) changes.wires = b.wires;
   const updated = db.saveProject({ ...p, ...changes });
+  audit(u, 'admin_update_project', m[0], { fields: Object.keys(changes).filter(k => k !== 'updatedAt'), reason: typeof b.reason === 'string' ? b.reason.slice(0, 240) : undefined });
   json(res, { project: projectView(updated, u, true) });
 });
 
@@ -980,14 +1235,19 @@ route('POST', '/api/admin/users', async (req, res, u) => {
 
 route('GET', '/api/admin/system', async (req, res, u) => {
   if (!u || !isAdmin(u)) return json(res, { error: 'auth' }, 401);
-  const freemem = process.memoryUsage();
+  let dbFile = 0;
+  try { dbFile = fs.statSync(db.raw.name).size; } catch {}
   json(res, {
-    node: process.version,
-    platform: process.platform,
-    uptime: process.uptime(),
-    memory: freemem,
-    pid: process.pid,
-    cwd: process.cwd()
+    system: {
+      node: process.version,
+      platform: process.platform,
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      pid: process.pid,
+      cwd: process.cwd(),
+      sessions: Object.keys(db.getAllSessions()).length,
+      dbFile
+    }
   });
 });
 
@@ -1144,77 +1404,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-/* ================= WebSocket Multiplayer Server (Workstream F) ================= */
-const wss = new WebSocket.Server({ noServer: true });
-const rooms = new Map(); // projectId -> Set of { ws, user, color }
-
-server.on('upgrade', (request, socket, head) => {
-  const url = new URL(request.url, 'http://localhost');
-  if (url.pathname.startsWith('/ws/project/')) {
-    const u = authedUser(request);
-    if (db.getSettings().maintenanceMode && !(u && u.role === 'admin')) {
-      socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request);
-    });
-  } else {
-    socket.destroy();
-  }
-});
-
-wss.on('connection', (ws, request) => {
-  const url = new URL(request.url, 'http://localhost');
-  const projectId = url.pathname.split('/').pop();
-  const u = authedUser(request) || { id: 'guest-' + uid(4), name: 'Guest' };
-  const userColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
-
-  if (!rooms.has(projectId)) rooms.set(projectId, new Set());
-  const room = rooms.get(projectId);
-  const client = { ws, user: u, color: userColor };
-  room.add(client);
-
-  logger.info(`WebSocket: ${u.name} connected to project ${projectId} (total: ${room.size})`);
-
-  // Broadcast presence
-  const broadcast = (msg, skipSelf = false) => {
-    const payload = JSON.stringify(msg);
-    room.forEach(c => {
-      if (skipSelf && c.ws === ws) return;
-      if (c.ws.readyState === WebSocket.OPEN) c.ws.send(payload);
-    });
-  };
-
-  broadcast({ type: 'presence', user: u, color: userColor, action: 'join' });
-
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      if (data.type === 'cursor') {
-        broadcast({ type: 'cursor', userId: u.id, name: u.name, color: userColor, x: data.x, y: data.y }, true);
-      } else if (data.type === 'doc_change') {
-        broadcast({ type: 'doc_change', userId: u.id, components: data.components, wires: data.wires }, true);
-        // Periodically persist to SQLite
-        const p = db.getProject(projectId);
-        if (p && (p.ownerId === u.id || u.role === 'admin')) {
-          db.saveProject({ ...p, components: data.components, wires: data.wires, updatedAt: now() });
-        }
-      }
-    } catch (e) {
-      logger.error('WS message error:', e);
-    }
-  });
-
-  ws.on('close', () => {
-    room.delete(client);
-    if (room.size === 0) rooms.delete(projectId);
-    broadcast({ type: 'presence', user: u, action: 'leave' });
-    logger.info(`WebSocket: ${u.name} disconnected from project ${projectId}`);
-  });
-});
-
 /* Graceful Shutdown */
 let isShuttingDown = false;
 function shutdown(signal) {
@@ -1223,9 +1412,6 @@ function shutdown(signal) {
   logger.info(`Received ${signal} — shutting down gracefully...`);
   clearInterval(backupTimer);
   clearInterval(rateSweepTimer);
-  wss.clients.forEach(c => {
-    try { c.close(1001, 'Server shutting down'); } catch { /* ignore */ }
-  });
   const forceExit = setTimeout(() => {
     logger.warn('Graceful shutdown timed out after 10s; forcing exit.');
     process.exit(1);

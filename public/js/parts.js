@@ -31,9 +31,12 @@
       const d1 = Math.floor(v / Math.pow(10, exp)), rest = v / d1;
       const d2 = Math.round(rest % 10);
       const mult = clamp(exp - (d2 ? 1 : 0), 0, 9);
-      let s = path('M4 13 H26 M70 13 H92', '#94a3b8', 2.4);
-      s += R(26, 4, 44, 18, '#d9c9a3', 'rx="8" stroke="#b8a67d"');
+      let s = `<defs><linearGradient id="resCer" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f0e2c0"/><stop offset="45%" stop-color="#dccfa8"/><stop offset="100%" stop-color="#b39d72"/></linearGradient><linearGradient id="resLead" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#eef2f7"/><stop offset="55%" stop-color="#b9c2cf"/><stop offset="100%" stop-color="#8f99a8"/></linearGradient></defs>`;
+      s += path('M4 13 H26 M70 13 H92', 'url(#resLead)', 3) + path('M4 11.9 H26 M70 11.9 H92', '#ffffff', .8);
+      s += R(26, 4, 44, 18, 'url(#resCer)', 'rx="8" stroke="#a8936b" stroke-width=".9"');
+      s += R(26, 4, 5, 18, 'url(#resLead)', 'opacity=".9"') + R(65, 4, 5, 18, 'url(#resLead)', 'opacity=".9"');
       [[34, BAND[d1]], [43, BAND[d2]], [52, BAND[mult]], [64, '#c9a227']].forEach(([x, col]) => { s += R(x, 4, 4, 18, col); });
+      s += R(27, 5, 42, 5, '#ffffff', 'rx="2.5" opacity=".22"');
       s += T(48, 36, fmtOhms(v), '#7d8fb3', 6);
       return s;
     }
@@ -48,8 +51,11 @@
     pins: [{ id: '+', label: '+', x: 16, y: 44, o: 'l', kind: 'special' }, { id: '-', label: '−', x: 40, y: 44, o: 'r', kind: 'special' }],
     props: [{ key: 'uf', label: 'Capacitance (µF)', type: 'number', def: 100, min: 0.1, max: 10000 }],
     render(def, c) {
-      let s = path('M16 44 V26 M40 44 V26', '#94a3b8', 2.2);
-      s += CI(28, 14, 12, '#1e3a5f', 'stroke="#3d6db5" stroke-width="1.4"') + T(21, 10, '+', '#7dd3fc', 8);
+      let s = `<defs><linearGradient id="capCan" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#172d50"/><stop offset="50%" stop-color="#3a5c9a"/><stop offset="100%" stop-color="#122242"/></linearGradient></defs>`;
+      s += path('M16 44 V26 M40 44 V26', '#94a3b8', 2.4);
+      s += CI(28, 14, 12, 'url(#capCan)', 'stroke="#0d1c38" stroke-width="1.2"');
+      s += `<ellipse cx="28" cy="4.5" rx="8.5" ry="2.4" fill="#94a3b8" opacity=".8"/>`;
+      s += T(21.5, 11, '+', '#9adfff', 8);
       s += T(28, 18, (c.props.uf || 100) + 'µ', '#bed8f5', 6.5);
       return s;
     },
@@ -64,7 +70,10 @@
     props: [{ key: 'value', label: 'Position', type: 'range', def: 0.5, min: 0, max: 1, step: 0.01 }],
     render(def, c) {
       const a = -135 + (c.props.value ?? 0.5) * 270;
-      let s = CI(37, 34, 26, '#2b3347', 'stroke="#4b5a7a" stroke-width="1.5"') + CI(37, 34, 18, '#1a2133', 'stroke="#3b4763"');
+      let s = `<defs><radialGradient id="potMetal" cx="35%" cy="30%" r="95%"><stop offset="0%" stop-color="#e8ecf3"/><stop offset="55%" stop-color="#9aa5b5"/><stop offset="100%" stop-color="#5d6a7c"/></radialGradient></defs>`;
+      s += CI(37, 34, 26, 'url(#potMetal)', 'stroke="#445060" stroke-width="1.4"');
+      for (let i = 0; i < 12; i++) { const k = i * 30 * Math.PI / 180; s += `<line x1="${(37 + 24.2 * Math.cos(k)).toFixed(2)}" y1="${(34 + 24.2 * Math.sin(k)).toFixed(2)}" x2="${(37 + 26.4 * Math.cos(k)).toFixed(2)}" y2="${(34 + 26.4 * Math.sin(k)).toFixed(2)}" stroke="#445060" stroke-width="1.4"/>`; }
+      s += CI(37, 34, 18, '#1a2133', 'stroke="#0e1424" stroke-width="1.3"') + CI(37, 34, 12.5, 'none', 'stroke="#2c3a58" stroke-width=".8" stroke-dasharray="2 2.6"');
       s += `<line data-k="pointer" x1="37" y1="34" x2="${37 + 15 * Math.cos(a * Math.PI / 180)}" y2="${34 + 15 * Math.sin(a * Math.PI / 180)}" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>`;
       s += CI(37, 34, 24, 'none', 'data-act="knob" stroke="transparent" stroke-width="9"');
       s += T(8, 10, '10k', '#7d8fb3', 6, 'start');
@@ -86,9 +95,12 @@
     props: [{ key: 'color', label: 'Color', type: 'select', def: '#ef4444', options: [['#ef4444', 'Red'], ['#22c55e', 'Green'], ['#3b82f6', 'Blue'], ['#facc15', 'Yellow'], ['#fb923c', 'Orange'], ['#f1f5f9', 'White']] }],
     render(def, c) {
       const col = c.props.color || '#ef4444';
-      let s = path('M14 72 V34 M32 72 V30', '#94a3b8', 2.2);
-      s += `<path data-k="bulb" d="M8 30 Q8 8 23 8 Q38 8 38 30 L38 34 L8 34 Z" fill="${col}" fill-opacity="0.35" stroke="${col}" stroke-width="1.6"/>`;
-      s += R(8, 34, 30, 5, col, 'opacity="0.55" rx="2"');
+      let s = `<defs><radialGradient id="ledGlass" cx="35%" cy="24%" r="85%"><stop offset="0%" stop-color="#ffffff" stop-opacity=".85"/><stop offset="45%" stop-color="#ffffff" stop-opacity=".1"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient><linearGradient id="ledLead" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e8ecf3"/><stop offset="100%" stop-color="#8f99a8"/></linearGradient></defs>`;
+      s += R(12.6, 34, 2.9, 38, 'url(#ledLead)', 'rx="1"') + R(30.6, 30, 2.9, 42, 'url(#ledLead)', 'rx="1"');
+      s += R(8, 34, 30, 5.5, col, 'opacity="0.55" rx="2"');
+      s += `<path data-k="bulb" d="M8 30 Q8 8 23 8 Q38 8 38 30 L38 34 L8 34 Z" fill="${col}" fill-opacity="0.35" stroke="${col}" stroke-width="1.4"/>`;
+      s += `<path d="M8 30 Q8 8 23 8 Q38 8 38 30 L38 34 L8 34 Z" fill="url(#ledGlass)"/>`;
+      s += `<ellipse cx="17" cy="17" rx="4.5" ry="7" fill="#ffffff" opacity=".5" transform="rotate(-12 17 17)"/>`;
       s += `<ellipse data-k="glow" cx="23" cy="24" rx="20" ry="18" fill="${col}" opacity="0"/>`;
       return s;
     },
@@ -148,9 +160,12 @@
     desc: 'Piezo buzzer. Use tone(pin, freq, dur) for melodies, or drive HIGH for a click.',
     pins: [{ id: '+', label: '+', x: 12, y: 48, o: 'l', kind: 'digital' }, { id: '-', label: '−', x: 40, y: 48, o: 'r', kind: 'ground' }],
     render() {
-      let s = path('M12 48 V30 M40 48 V30', '#94a3b8', 2.2);
-      s += CI(26, 22, 18, '#14161d', 'stroke="#3b4763" stroke-width="1.6"') + CI(26, 22, 7, '#2b3347');
-      s += T(14, 16, '+', '#e2e8f0', 8);
+      let s = `<defs><radialGradient id="buzBody" cx="40%" cy="32%" r="88%"><stop offset="0%" stop-color="#333d55"/><stop offset="65%" stop-color="#161a24"/><stop offset="100%" stop-color="#0a0c12"/></radialGradient></defs>`;
+      s += path('M12 48 V30 M40 48 V30', '#94a3b8', 2.4);
+      s += CI(26, 22, 18, 'url(#buzBody)', 'stroke="#3b4763" stroke-width="1.6"');
+      s += CI(26, 22, 13.5, 'none', 'stroke="#232c42" stroke-width="1" opacity=".8"');
+      s += CI(26, 22, 7, '#05070c', 'stroke="#2e3750" stroke-width="1.1"') + CI(26, 22, 2.4, '#1a2338');
+      s += T(14, 15, '+', '#e2e8f0', 8);
       return s;
     },
     sense(c, api) { buzzTick(c, api, 0.7); }
@@ -183,9 +198,12 @@
     pins: [{ id: '1', label: '1', x: 10, y: 52, o: 'l', kind: 'special' }, { id: '2', label: '2', x: 42, y: 52, o: 'r', kind: 'special' }],
     render(def, c) {
       const dn = c.state && c.state.pressed;
-      let s = path('M10 52 V34 M42 52 V34', '#94a3b8', 2.2);
-      s += R(10, 20, 32, 14, '#1f2937', 'rx="3" stroke="#4b5563"');
-      s += `<rect data-act="press" x="16" y="${dn ? 12 : 8}" width="20" height="${dn ? 8 : 12}" rx="3" fill="${dn ? '#f87171' : '#e2e8f0'}" style="transition:all .08s"/>`;
+      let s = `<defs><linearGradient id="btnBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#303a4e"/><stop offset="100%" stop-color="#141a28"/></linearGradient><linearGradient id="btnCap" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#c3ccd9"/></linearGradient></defs>`;
+      s += path('M10 52 V34 M42 52 V34', '#94a3b8', 2.4);
+      s += R(7, 30, 6, 6, '#aeb6c2', 'rx="1.5"') + R(39, 30, 6, 6, '#aeb6c2', 'rx="1.5"');
+      s += R(10, 20, 32, 14, 'url(#btnBody)', 'rx="3" stroke="#0c1018" stroke-width="1"');
+      s += path('M13 22 H39', '#4b5a7a', 1);
+      s += `<rect data-act="press" x="16" y="${dn ? 13 : 8}" width="20" height="${dn ? 7 : 12}" rx="3" fill="${dn ? '#f87171' : 'url(#btnCap)'}" stroke="${dn ? '#b91c1c' : '#94a3b8'}" stroke-width=".8" style="transition:all .08s"/>`;
       return s;
     },
     tick(c, api) { if (c.state.pressed) api.connect(api.pin(c, '1'), api.pin(c, '2')); }
@@ -326,9 +344,12 @@
     pins: [{ id: 'VCC', label: 'VCC', x: 14, y: 80, o: 'l', kind: 'power' }, { id: 'DATA', label: 'DATA', x: 32, y: 80, o: 't', kind: 'digital' }, { id: 'GND', label: 'GND', x: 50, y: 80, o: 'r', kind: 'ground' }],
     props: [{ key: 'temp', label: 'Temperature °C', type: 'range', def: 25, min: -20, max: 60, step: 0.5 }, { key: 'hum', label: 'Humidity %', type: 'range', def: 55, min: 0, max: 100, step: 1 }],
     render(def, c) {
-      let s = R(4, 4, 56, 66, '#3b82a0', 'rx="5" stroke="#5ab2d4" stroke-width="1.4"');
-      for (let i = 0; i < 4; i++) s += R(10, 12 + i * 13, 44, 6, '#2b6a85', 'rx="2"');
-      s += T(32, 66, `${(+c.props.temp).toFixed(1)}°C ${c.props.hum | 0}%`, '#dff3fb', 7);
+      let s = `<defs><linearGradient id="dhtShell" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f7fbfd"/><stop offset="100%" stop-color="#d4e2ec"/></linearGradient></defs>`;
+      s += R(4, 4, 56, 66, 'url(#dhtShell)', 'rx="5" stroke="#9db8cd" stroke-width="1.2"');
+      for (let i = 0; i < 4; i++) { s += R(10, 12 + i * 13, 44, 6, '#b7cbda', 'rx="2"'); s += R(11, 12.8 + i * 13, 42, 1.4, '#8ba7bc', 'rx="1"'); }
+      s += T(32, 63.5, `${(+c.props.temp).toFixed(1)}°C ${c.props.hum | 0}%`, '#41617a', 7);
+      s += R(8, 66, 48, 10, '#1e40af', 'rx="2"');
+      [14, 32, 50].forEach(px => { s += CI(px, 80.5, 2.1, '#07090e', 'stroke="#c9a227" stroke-width=".9"'); });
       s += plabels(def);
       return s;
     }
@@ -341,9 +362,15 @@
     pins: [{ id: 'VCC', label: 'VCC', x: 10, y: 50, o: 'r', kind: 'power' }, { id: 'TRIG', label: 'TRIG', x: 32, y: 50, o: 't', kind: 'digital' }, { id: 'ECHO', label: 'ECHO', x: 58, y: 50, o: 't', kind: 'digital' }, { id: 'GND', label: 'GND', x: 82, y: 50, o: 'l', kind: 'ground' }],
     props: [{ key: 'dist', label: 'Target distance (cm)', type: 'range', def: 42, min: 2, max: 400, step: 1 }, { key: 'auto', label: 'Random-moving target', type: 'bool', def: false }],
     render(def, c) {
-      let s = R(0, 6, 92, 44, '#1e3a5f', 'rx="6" stroke="#3d6db5"');
-      s += CI(26, 26, 14, '#c8ccd4', 'stroke="#8a93a6" stroke-width="2"') + CI(66, 26, 14, '#c8ccd4', 'stroke="#8a93a6" stroke-width="2"');
-      s += CI(26, 26, 8, '#3a3f47') + CI(66, 26, 8, '#3a3f47');
+      let s = `<defs><radialGradient id="usCan" cx="40%" cy="28%" r="88%"><stop offset="0%" stop-color="#eef2f7"/><stop offset="55%" stop-color="#b9c2cf"/><stop offset="100%" stop-color="#78828f"/></radialGradient></defs>`;
+      s += R(0, 6, 92, 44, '#1e3a5f', 'rx="6" stroke="#3d6db5" stroke-width="1.2"');
+      s += R(0, 6, 92, 14, '#ffffff', 'rx="6" opacity=".07"');
+      [26, 66].forEach(cx => {
+        s += CI(cx, 27, 13.5, 'url(#usCan)', 'stroke="#5f6b79" stroke-width="1.2"') + CI(cx, 27, 9, '#202b38', 'stroke="#0c131c" stroke-width="1"');
+        s += path(`M${cx - 9} 24 H${cx + 9} M${cx - 9} 30 H${cx + 9} M${cx - 3.5} 18 V36 M${cx + 3.5} 18 V36`, '#425061', .9);
+      });
+      s += R(41, 21, 10, 7, 'url(#usCan)', 'rx="3" stroke="#8a93a6" stroke-width=".6"');
+      s += T(46, 44.5, 'HC-SR04', '#9fc7ee', 5);
       s += `<circle data-k="ping" cx="46" cy="26" r="${2 + ((Date.now() / 400) % 1) * 6}" fill="none" stroke="#22d3ee" opacity="0"/>`;
       s += T(46, 14, Math.round(c.props.dist) + ' cm', '#9fc7ee', 7);
       s += plabels(def);
@@ -471,9 +498,13 @@ D.ir = analogModule('ir', 'IR Obstacle Sensor', '🚧', 'Infrared proximity modu
     pins: [{ id: 'GND', label: 'GND', x: 8, y: 44, o: 'l', kind: 'ground' }, { id: 'VCC', label: 'V+', x: 8, y: 54, o: 'l', kind: 'power' }, { id: 'SIG', label: 'SIG', x: 8, y: 64, o: 'l', kind: 'digital' }],
     render(def, c) {
       const a = c.state.angle ?? 90;
-      let s = R(18, 22, 46, 30, '#1d4ed8', 'rx="5" stroke="#3b82f6" stroke-width="1.5"');
-      s += R(18, 22, 46, 10, '#1e40af', 'rx="5"');
-      s += CI(41, 22, 7, '#e2e8f0', 'stroke="#94a3b8"');
+      let s = `<defs><linearGradient id="svCase" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3ea3f5"/><stop offset="100%" stop-color="#1d4ed8"/></linearGradient></defs>`;
+      s += R(10, 26, 8, 22, '#1e40af', 'rx="2" stroke="#163080" stroke-width=".8"') + CI(14, 32, 2.4, '#0f1f4d') + CI(14, 42, 2.4, '#0f1f4d');
+      s += R(64, 26, 10, 22, '#1e40af', 'rx="2" stroke="#163080" stroke-width=".8"') + CI(69, 32, 2.4, '#0f1f4d') + CI(69, 42, 2.4, '#0f1f4d');
+      s += R(18, 22, 46, 30, 'url(#svCase)', 'rx="5" stroke="#60a5fa" stroke-width="1.2"');
+      s += R(18, 22, 46, 10, '#93c5fd', 'rx="5" opacity=".5"');
+      s += CI(41, 22, 7, 'url(#svCase)', 'stroke="#93c5fd"');
+      s += T(41, 29.5, 'SG90', '#0b2c6b', 5.5);
       s += `<g data-k="horn" transform="rotate(${-a} 41 22)"><rect x="39" y="8" width="4" height="16" rx="2" fill="#f1f5f9"/></g>`;
       s += path('M18 44 H8 M18 54 H8 M18 64 H8', '#94a3b8', 2);
       s += T(41, 44, Math.round(a) + '°', '#bfdbfe', 8);
@@ -596,11 +627,17 @@ D.ir = analogModule('ir', 'IR Obstacle Sensor', '🚧', 'Infrared proximity modu
     pins: [{ id: 'VCC', label: 'VCC', x: 16, y: 72, o: 'l', kind: 'power' }, { id: 'GND', label: 'GND', x: 38, y: 72, o: 't', kind: 'ground' }, { id: 'SDA', label: 'SDA', x: 58, y: 72, o: 't', kind: 'i2c' }, { id: 'SCL', label: 'SCL', x: 74, y: 72, o: 'r', kind: 'i2c' }],
     render(def, c) {
       const lines = c.state.lines || [];
-      let s = R(0, 0, 88, 78, '#e2e8f0', 'rx="5" stroke="#94a3b8"');
-      s += R(8, 8, 72, 48, '#020617', 'rx="2"');
+      let s = `<defs><linearGradient id="oledGlass" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b1424"/><stop offset="100%" stop-color="#000207"/></linearGradient><linearGradient id="oledSheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7dd3fc" stop-opacity=".15"/><stop offset="45%" stop-color="#7dd3fc" stop-opacity="0"/></linearGradient></defs>`;
+      s += R(0, 0, 88, 78, '#1d4ed8', 'rx="5" stroke="#123080" stroke-width="1.2"');
+      s += R(0, 0, 88, 24, '#ffffff', 'rx="5" opacity=".05"');
+      s += CI(5, 5, 2.2, '#0f2a6e', 'stroke="#9db8ff" stroke-width=".7"') + CI(83, 5, 2.2, '#0f2a6e', 'stroke="#9db8ff" stroke-width=".7"') + CI(5, 73, 2.2, '#0f2a6e', 'stroke="#9db8ff" stroke-width=".7"') + CI(83, 73, 2.2, '#0f2a6e', 'stroke="#9db8ff" stroke-width=".7"');
+      s += R(6, 6, 76, 52, '#0a0f1c', 'rx="3"');
+      s += R(8, 8, 72, 48, 'url(#oledGlass)', 'rx="2" stroke="#1e2b44" stroke-width=".8"') + R(8, 8, 72, 20, 'url(#oledSheen)', 'rx="2"');
       s += `<g font-family="monospace" font-size="8.5" fill="#7dd3fc">`;
       lines.slice(-5).forEach((ln, i) => { s += `<text x="12" y="${20 + i * 9.5}">${CS.esc(ln).slice(0, 14)}</text>`; });
       s += `</g>`;
+      [16, 38, 58, 74].forEach(px => { s += CI(px, 72, 2.3, '#07090e', 'stroke="#c9a227" stroke-width=".9"'); });
+      s += T(44, 4.6, 'SSD1306', '#9db8ff', 4.6);
       s += plabels(def);
       return s;
     },

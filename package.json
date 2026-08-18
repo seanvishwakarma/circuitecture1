@@ -1,7 +1,7 @@
 {
   "name": "circuittecture",
   "version": "1.0.0",
-  "description": "Interactive IoT circuit simulator with a web-based editor, simulation engine, collaboration, and admin controls.",
+  "description": "Interactive IoT circuit simulator with a web-based editor, simulation engine, and admin controls.",
   "private": true,
   "main": "server.js",
   "engines": {
@@ -32,7 +32,6 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.2",
-    "ws": "^8.21.1"
+    "better-sqlite3": "^13.0.2"
   }
 }

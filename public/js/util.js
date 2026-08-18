@@ -16,6 +16,7 @@ window.CS = window.CS || {};
     return d.toLocaleDateString();
   };
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+  const throttle = (fn, ms) => { let last = 0, t = null; return (...a) => { const now = Date.now(); const run = () => { last = Date.now(); t = null; fn(...a); }; if (now - last >= ms) run(); else if (!t) t = setTimeout(run, ms - (now - last)); }; };
   const modalOpenHistory = []; // Stack to store elements that were focused before a modal opened
 
   /* api */
@@ -169,5 +170,5 @@ window.CS = window.CS || {};
     emit(ev, ...a) { (this.m[ev] || []).forEach(fn => { try { fn(...a); } catch (e) { console.error(e); } }); }
   };
 
-  Object.assign(CS, { $, $$, esc, uid, clamp, fmtTime, debounce, api, toast, modal, menu, closeMenu, skeletons, svgEl, SVGNS, download, bus, fetchCsrf });
+  Object.assign(CS, { $, $$, esc, uid, clamp, fmtTime, debounce, throttle, api, toast, modal, menu, closeMenu, skeletons, svgEl, SVGNS, download, bus, fetchCsrf });
 })();
