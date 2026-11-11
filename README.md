@@ -109,11 +109,6 @@ npm run test:e2e
 - **Web Worker sandbox**: User-defined logicJs runs in isolated Worker with no DOM/network access
 - Security model: structured message interface only, no `document`/`window`/`fetch`/`XMLHttpRequest`
 
-### Classroom / Assignments
-- Create assignments with titles, briefs, due dates, and rubrics
-- Student submissions linked to projects
-- Grading and feedback
-
 ## Admin Panel
 
 | Tab | Features |
